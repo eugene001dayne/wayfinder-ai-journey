@@ -1,0 +1,144 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Compass, ArrowRight, Zap, Target, TrendingUp, Users, Briefcase, GraduationCap, Store, Star } from "lucide-react";
+
+const Landing = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Nav */}
+      <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+        <div className="container mx-auto flex items-center justify-between h-16 px-4">
+          <div className="flex items-center gap-2">
+            <Compass className="h-6 w-6 text-primary" />
+            <span className="text-lg font-bold text-foreground">Wayfinder</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/onboarding">
+              <Button variant="glow" size="sm">Get Started</Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(217_91%_60%/0.08),transparent_70%)]" />
+        <div className="container mx-auto text-center relative z-10 max-w-4xl">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary text-sm mb-8 animate-fade-up">
+            <Zap className="h-3.5 w-3.5" />
+            AI-powered guidance for everyone
+          </div>
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+            Your personal{" "}
+            <span className="gradient-text">AI navigator</span>
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+            Stop guessing which AI tools to use. Wayfinder maps your exact path — from idea to execution — with the right tools, prompts, and workflows.
+          </p>
+          <div className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <Link to="/onboarding">
+              <Button variant="glow" size="lg" className="text-base px-8 py-6 rounded-xl">
+                Find Your Path <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            Everyone knows they should use AI.{" "}
+            <span className="text-muted-foreground">Almost nobody knows how.</span>
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            There are hundreds of AI tools. Thousands of tutorials. But no clear path from where you are to where you want to be. Wayfinder changes that.
+          </p>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-5xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">How it works</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Target, step: "01", title: "Tell us what you want", desc: "Describe your goal in plain English. No technical knowledge needed." },
+              { icon: Compass, step: "02", title: "Get your exact path", desc: "We map the perfect workflow — tools, prompts, and steps — tailored to you." },
+              { icon: TrendingUp, step: "03", title: "Build the habit", desc: "Track your progress, get nudges, and level up your AI fitness over time." },
+            ].map((item) => (
+              <div key={item.step} className="relative p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-colors group">
+                <div className="text-xs font-mono text-primary/60 mb-4">{item.step}</div>
+                <item.icon className="h-8 w-8 text-primary mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-muted-foreground text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Who it's for */}
+      <section className="py-20 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-5xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">Built for people who get things done</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Briefcase, title: "Professionals", desc: "Automate workflows and stay ahead" },
+              { icon: Users, title: "Freelancers", desc: "Do more with fewer tools" },
+              { icon: Store, title: "SMB Owners", desc: "Scale without scaling your team" },
+              { icon: GraduationCap, title: "Students", desc: "Learn and research 10x faster" },
+            ].map((item) => (
+              <div key={item.title} className="p-5 rounded-xl bg-card border border-border/50 text-center hover:border-primary/30 transition-colors">
+                <item.icon className="h-8 w-8 text-primary mx-auto mb-3" />
+                <h3 className="font-semibold mb-1">{item.title}</h3>
+                <p className="text-muted-foreground text-xs">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-5xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">What early users say</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { name: "Sarah K.", role: "Marketing Manager", quote: "Wayfinder turned my vague idea into a complete AI workflow in 5 minutes." },
+              { name: "James R.", role: "Freelance Designer", quote: "I finally know which AI tools actually matter for my work. Game changer." },
+              { name: "Priya M.", role: "MBA Student", quote: "My research process is 10x faster now. I wish I had this sooner." },
+            ].map((t) => (
+              <div key={t.name} className="p-6 rounded-xl bg-card border border-border/50">
+                <div className="flex gap-1 mb-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                  ))}
+                </div>
+                <p className="text-sm text-foreground/90 mb-4">"{t.quote}"</p>
+                <div>
+                  <p className="text-sm font-medium">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-5xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Compass className="h-5 w-5 text-primary" />
+            <span className="font-semibold">Wayfinder</span>
+          </div>
+          <p className="text-muted-foreground text-sm">© 2026 Wayfinder. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Landing;
