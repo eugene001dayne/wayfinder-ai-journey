@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import MyWorkflows from "./pages/MyWorkflows";
+import MyPatterns from "./pages/MyPatterns";
+import Nudges from "./pages/Nudges";
 import Session from "./pages/Session";
 import WorkflowResult from "./pages/WorkflowResult";
 import Profile from "./pages/Profile";
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/workflows" element={<MyWorkflows />} />
+          <Route path="/patterns" element={<MyPatterns />} />
+          <Route path="/nudges" element={<Nudges />} />
           <Route path="/session" element={<Session />} />
           <Route path="/workflow" element={<WorkflowResult />} />
           <Route path="/profile" element={<Profile />} />

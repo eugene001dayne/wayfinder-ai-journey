@@ -5,9 +5,9 @@ import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, 
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
-  { icon: Workflow, label: "My Workflows", path: "/dashboard" },
-  { icon: Brain, label: "My Patterns", path: "/dashboard" },
-  { icon: Bell, label: "Nudges", path: "/dashboard" },
+  { icon: Workflow, label: "My Workflows", path: "/workflows" },
+  { icon: Brain, label: "My Patterns", path: "/patterns" },
+  { icon: Bell, label: "Nudges", path: "/nudges" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
