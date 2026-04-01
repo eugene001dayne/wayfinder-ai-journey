@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Compass, ArrowLeft, Send, Loader2 } from "lucide-react";
+import { buildSession } from "@/lib/api";
 
-const clarifyingQuestions = [
-  { id: 1, question: "How often do you currently create these reports?", placeholder: "e.g., Weekly, every Monday" },
-  { id: 2, question: "What data sources do you pull from?", placeholder: "e.g., Google Analytics, CRM, spreadsheets" },
-  { id: 3, question: "What format should the final report be in?", placeholder: "e.g., PDF, Google Slides, email summary" },
+const fallbackQuestions = [
+  { id: 1, question: "How often do you currently do this?", placeholder: "e.g., Weekly, every Monday" },
+  { id: 2, question: "What data sources or tools do you use?", placeholder: "e.g., Google Analytics, CRM, spreadsheets" },
+  { id: 3, question: "What format should the final output be in?", placeholder: "e.g., PDF, email summary, slides" },
   { id: 4, question: "How long does it take you currently?", placeholder: "e.g., About 3 hours each week" },
 ];
 
 const Session = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as { session?: { id: string; query?: string; clarifying_questions?: { id: number; question: string; placeholder?: string }[] }; query?: string } | null;
+
+  const sessionId = state?.session?.id;
+  const query = state?.session?.query || state?.query || "Describe your goal";
+  const questions = state?.session?.clarifying_questions?.length ? state.session.clarifying_questions : fallbackQuestions;
+
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -20,8 +28,15 @@ const Session = () => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
+    if (sessionId) {
+      try {
+        const stringAnswers: Record<string, string> = {};
+        Object.entries(answers).forEach(([k, v]) => { stringAnswers[k] = v; });
+        await buildSession({ session_id: sessionId, answers: stringAnswers });
+      } catch {}
+    }
     setTimeout(() => navigate("/workflow"), 2500);
   };
 
@@ -31,15 +46,7 @@ const Session = () => {
         <div className="text-center">
           <div className="relative w-32 h-32 mx-auto mb-8">
             <svg className="w-32 h-32" viewBox="0 0 120 120">
-              <path
-                d="M20 100 Q40 60 60 70 Q80 80 100 20"
-                fill="none"
-                stroke="hsl(217 91% 60%)"
-                strokeWidth="3"
-                strokeDasharray="1000"
-                className="animate-[path-draw_2s_ease-in-out_infinite]"
-                style={{ strokeDashoffset: 0 }}
-              />
+              <path d="M20 100 Q40 60 60 70 Q80 80 100 20" fill="none" stroke="hsl(217 91% 60%)" strokeWidth="3" strokeDasharray="1000" className="animate-[path-draw_2s_ease-in-out_infinite]" style={{ strokeDashoffset: 0 }} />
               <circle r="4" fill="hsl(263 70% 52%)">
                 <animateMotion dur="2s" repeatCount="indefinite" path="M20 100 Q40 60 60 70 Q80 80 100 20" />
               </circle>
@@ -54,7 +61,6 @@ const Session = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="h-16 border-b border-border/50 flex items-center px-6">
         <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
@@ -68,26 +74,19 @@ const Session = () => {
       </header>
 
       <div className="max-w-2xl mx-auto p-6 lg:p-10">
-        {/* Original input */}
         <div className="rounded-xl bg-card border border-border/50 p-5 mb-8">
           <p className="text-xs text-muted-foreground mb-2">Your goal</p>
-          <p className="text-foreground font-medium">Automate weekly client reports with AI</p>
+          <p className="text-foreground font-medium">{query}</p>
         </div>
 
-        {/* Clarifying questions */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-1">Let's refine your path</h2>
           <p className="text-sm text-muted-foreground mb-6">Answer a few questions so we can map the perfect workflow.</p>
           <div className="space-y-4">
-            {clarifyingQuestions.map((q) => (
+            {questions.map((q) => (
               <div key={q.id} className="rounded-xl bg-card border border-border/50 p-5 animate-fade-up" style={{ animationDelay: `${q.id * 0.1}s` }}>
                 <label className="text-sm font-medium mb-2 block">{q.question}</label>
-                <Input
-                  placeholder={q.placeholder}
-                  value={answers[q.id] || ""}
-                  onChange={(e) => handleAnswer(q.id, e.target.value)}
-                  className="bg-muted/50 border-border/50"
-                />
+                <Input placeholder={q.placeholder || ""} value={answers[q.id] || ""} onChange={(e) => handleAnswer(q.id, e.target.value)} className="bg-muted/50 border-border/50" />
               </div>
             ))}
           </div>

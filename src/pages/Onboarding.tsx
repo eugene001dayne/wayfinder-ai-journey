@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Compass, Briefcase, Users, Store, GraduationCap, Sparkles, ArrowRight, Check } from "lucide-react";
+import { Compass, Briefcase, Users, Store, GraduationCap, Sparkles, ArrowRight, Check, Loader2 } from "lucide-react";
+import { createUser, setUserId } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const roles = [
   { id: "professional", label: "Professional", icon: Briefcase },
@@ -23,6 +25,7 @@ const aiTools = ["ChatGPT", "Claude", "Gemini", "Notion AI", "Midjourney", "None
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,6 +33,7 @@ const Onboarding = () => {
   const [industry, setIndustry] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [goal, setGoal] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const totalSteps = 4;
   const progress = step <= totalSteps ? (step / (totalSteps + 1)) * 100 : 100;
@@ -46,27 +50,39 @@ const Onboarding = () => {
     return true;
   };
 
-  const next = () => {
-    if (step <= totalSteps) setStep(step + 1);
-    else navigate("/dashboard");
+  const next = async () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    } else if (step === totalSteps) {
+      // Submit to API
+      setSubmitting(true);
+      try {
+        const user = await createUser({ name, email, role, industry, tools, goal });
+        setUserId(user.id);
+        setStep(5);
+      } catch (e) {
+        toast({ title: "Error", description: "Could not create account. Please try again.", variant: "destructive" });
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress */}
       <div className="w-full h-1 bg-muted">
         <div className="h-full gradient-bg transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
 
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
-          {/* Logo */}
           <div className="flex items-center gap-2 justify-center mb-12">
             <Compass className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold">Wayfinder</span>
           </div>
 
-          {/* Step 1 */}
           {step === 1 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
@@ -78,7 +94,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 2 */}
           {step === 2 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
@@ -104,7 +119,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 3 */}
           {step === 3 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
@@ -124,7 +138,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 4 */}
           {step === 4 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
@@ -159,7 +172,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Completion */}
           {step === 5 && (
             <div className="text-center animate-fade-up">
               <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
@@ -170,7 +182,6 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* CTA */}
           <div className="mt-10 flex justify-between items-center">
             {step > 1 && step <= totalSteps && (
               <button onClick={() => setStep(step - 1)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -182,15 +193,18 @@ const Onboarding = () => {
                 variant="glow"
                 size="lg"
                 onClick={next}
-                disabled={step <= totalSteps && !canNext()}
+                disabled={(step <= totalSteps && !canNext()) || submitting}
                 className="rounded-xl"
               >
-                {step === 5 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" />
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
+                ) : (
+                  <>{step === 5 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" /></>
+                )}
               </Button>
             </div>
           </div>
 
-          {/* Step indicator */}
           {step <= totalSteps && (
             <div className="flex justify-center gap-2 mt-8">
               {[1, 2, 3, 4].map((s) => (
