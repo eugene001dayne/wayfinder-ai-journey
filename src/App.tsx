@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "./pages/Landing";
+import SignIn from "./pages/SignIn";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import MyWorkflows from "./pages/MyWorkflows";
@@ -24,6 +25,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/signin" element={<SignIn />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/workflows" element={<MyWorkflows />} />

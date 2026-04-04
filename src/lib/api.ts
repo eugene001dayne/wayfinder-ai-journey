@@ -57,6 +57,7 @@ export interface ClarifyingQuestion {
 
 export interface Session {
   id: string;
+  session_id?: string;
   title?: string;
   date?: string;
   status?: string;
@@ -65,7 +66,9 @@ export interface Session {
   tools?: string[];
   query?: string;
   raw_input?: string;
-  clarifying_questions?: ClarifyingQuestion[];
+  type?: string;
+  intent?: { clarifying_questions?: string[] };
+  clarifying_questions?: string[] | ClarifyingQuestion[];
 }
 
 export interface WorkflowTool {
@@ -102,6 +105,13 @@ export interface WorkflowResult {
   steps?: WorkflowStep[];
   pro_tips?: string[];
   next_level?: string;
+}
+
+// GET /users/email/:email
+export async function getUserByEmail(email: string): Promise<UserProfile> {
+  const res = await request<{ user: UserProfile } | UserProfile>(`/users/email/${encodeURIComponent(email)}`);
+  if ("user" in res && res.user) return res.user;
+  return res as UserProfile;
 }
 
 // POST /users

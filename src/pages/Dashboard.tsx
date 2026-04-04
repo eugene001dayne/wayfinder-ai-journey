@@ -36,8 +36,11 @@ const Dashboard = () => {
     if (!query.trim() || !userId) return;
     setSubmitting(true);
     try {
-      const session = await startSession({ user_id: userId, raw_input: query });
-      navigate("/session", { state: { session, query } });
+      const res = await startSession({ user_id: userId, raw_input: query });
+      // API returns { session_id, type, intent, clarifying_questions }
+      const sessionId = res.session_id || res.id;
+      const questions = res.clarifying_questions || res.intent?.clarifying_questions || [];
+      navigate("/session", { state: { sessionId, questions, query } });
     } catch {
       navigate("/session", { state: { query } });
     } finally {
