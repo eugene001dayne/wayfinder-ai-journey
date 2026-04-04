@@ -173,7 +173,7 @@ const Dashboard = () => {
                   </div>
                   {latestNudge ? (
                     <>
-                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.text}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.message || (latestNudge as any).text}</p>
                       <button className="text-xs text-primary hover:underline flex items-center gap-1">
                         Try it now <ArrowRight className="h-3 w-3" />
                       </button>
