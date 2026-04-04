@@ -116,25 +116,19 @@ const Onboarding = () => {
           {step === 2 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">What best describes you?</h2>
-                <p className="text-muted-foreground text-sm">This helps us tailor your experience.</p>
+                <h2 className="text-2xl font-bold mb-2">What industry are you in?</h2>
+                <p className="text-muted-foreground text-sm">We'll customize recommendations for your field.</p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {roles.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => setRole(r.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      role === r.id
-                        ? "border-primary bg-primary/10 glow-border"
-                        : "border-border/50 bg-card hover:border-primary/30"
-                    }`}
-                  >
-                    <r.icon className={`h-6 w-6 mb-2 ${role === r.id ? "text-primary" : "text-muted-foreground"}`} />
-                    <span className="text-sm font-medium">{r.label}</span>
-                  </button>
+              <select
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                className="w-full h-12 rounded-xl bg-card border border-border/50 px-4 text-foreground text-sm focus:outline-none focus:border-primary"
+              >
+                <option value="">Select your industry</option>
+                {industries.map((ind) => (
+                  <option key={ind} value={ind}>{ind}</option>
                 ))}
-              </div>
+              </select>
             </div>
           )}
 
