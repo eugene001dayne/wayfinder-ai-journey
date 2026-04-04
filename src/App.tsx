@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import AuthHandler from "./components/AuthHandler";
 import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -22,18 +23,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/workflows" element={<MyWorkflows />} />
-          <Route path="/patterns" element={<MyPatterns />} />
-          <Route path="/nudges" element={<Nudges />} />
-          <Route path="/session" element={<Session />} />
-          <Route path="/workflow" element={<WorkflowResult />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthHandler>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/workflows" element={<MyWorkflows />} />
+            <Route path="/patterns" element={<MyPatterns />} />
+            <Route path="/nudges" element={<Nudges />} />
+            <Route path="/session" element={<Session />} />
+            <Route path="/workflow" element={<WorkflowResult />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthHandler>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
