@@ -94,6 +94,8 @@ const Dashboard = () => {
     }
   };
 
+  if (submitting) return <PathLoader />;
+
   return (
     <div className="min-h-screen bg-background flex">
       <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 p-4">
