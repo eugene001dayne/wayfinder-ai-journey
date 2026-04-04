@@ -48,7 +48,7 @@ const Dashboard = () => {
   const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
-  const latestNudge = user?.nudges?.[0];
+  const latestNudge = user?.nudges?.[0] as { message?: string; text?: string; nudge_type?: string } | undefined;
 
   return (
     <div className="min-h-screen bg-background flex">
