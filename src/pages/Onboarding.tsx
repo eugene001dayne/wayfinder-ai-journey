@@ -220,7 +220,7 @@ const Onboarding = () => {
 
           {step <= totalSteps && (
             <div className="flex justify-center gap-2 mt-8">
-              {[1, 2, 3, 4].map((s) => (
+              {[1, 2, 3].map((s) => (
                 <div
                   key={s}
                   className={`h-1.5 rounded-full transition-all ${
