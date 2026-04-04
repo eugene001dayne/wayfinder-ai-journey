@@ -36,7 +36,7 @@ const Dashboard = () => {
     if (!query.trim() || !userId) return;
     setSubmitting(true);
     try {
-      const session = await startSession({ user_id: userId, query });
+      const session = await startSession({ user_id: userId, raw_input: query });
       navigate("/session", { state: { session, query } });
     } catch {
       navigate("/session", { state: { query } });
