@@ -121,7 +121,7 @@ const Profile = () => {
                       <div key={i} className={`p-4 rounded-lg border ${n.urgent ? "border-primary/30 bg-primary/5" : "border-border/30 bg-muted/30"}`}>
                         <div className="flex items-start gap-3">
                           <Zap className={`h-4 w-4 mt-0.5 shrink-0 ${n.urgent ? "text-primary" : "text-muted-foreground"}`} />
-                          <p className="text-sm text-foreground/80">{n.text}</p>
+                          <p className="text-sm text-foreground/80">{n.message}</p>
                         </div>
                       </div>
                     ))}
