@@ -103,8 +103,8 @@ const Profile = () => {
                   <div className="space-y-3">
                     {patterns.map((p, i) => (
                       <div key={i} className="p-4 rounded-lg bg-muted/30 border border-border/30">
-                        <h4 className="text-sm font-medium mb-1">{p.title}</h4>
-                        <p className="text-xs text-muted-foreground">{p.desc}</p>
+                         <h4 className="text-sm font-medium mb-1">{p.description}</h4>
+                         {p.suggested_fix && <p className="text-xs text-muted-foreground">{p.suggested_fix}</p>}
                       </div>
                     ))}
                   </div>
