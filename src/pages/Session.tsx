@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Compass, ArrowLeft, Send, Loader2 } from "lucide-react";
 import { buildSession, getUserId } from "@/lib/api";
 import { saveSession } from "@/lib/storage";
+import PathLoader from "@/components/PathLoader";
 
 const Session = () => {
   const navigate = useNavigate();
