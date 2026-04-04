@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Compass, Home, Workflow, Brain, Bell, User, CheckCircle2, Clock, ArrowRight, FileX } from "lucide-react";
+import { Compass, Home, Workflow, Brain, Bell, User, CheckCircle2, Clock, ArrowRight, FileX, Bookmark } from "lucide-react";
 import { getUserId, getUser, getUserSessions, type UserProfile, type Session } from "@/lib/api";
+import { getSavedSessions, type SavedSession } from "@/lib/storage";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
@@ -16,10 +17,12 @@ const MyWorkflows = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [localSessions, setLocalSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const userId = getUserId();
 
   useEffect(() => {
+    setLocalSessions(getSavedSessions());
     if (!userId) { navigate("/onboarding"); return; }
     Promise.allSettled([getUser(userId), getUserSessions(userId)]).then(([uRes, sRes]) => {
       if (uRes.status === "fulfilled") setUser(uRes.value);
@@ -27,6 +30,31 @@ const MyWorkflows = () => {
       setLoading(false);
     });
   }, [userId, navigate]);
+
+  // Merge and sort: bookmarked first
+  const merged = (() => {
+    const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
+    const apiCards = sessions.map((s) => {
+      const id = s.id || s.session_id || "";
+      const local = localMap.get(id);
+      return { id, title: s.title || local?.title || "Untitled", date: s.date || local?.date || "", status: s.status || "Completed", bookmarked: local?.bookmarked || false, hasWorkflow: !!local?.workflow };
+    });
+    const apiIds = new Set(apiCards.map((c) => c.id));
+    const localOnly = localSessions.filter((s) => !apiIds.has(s.sessionId)).map((s) => ({
+      id: s.sessionId, title: s.title, date: s.date, status: s.status, bookmarked: s.bookmarked || false, hasWorkflow: !!s.workflow,
+    }));
+    const all = [...localOnly, ...apiCards];
+    return all.sort((a, b) => (a.bookmarked === b.bookmarked ? 0 : a.bookmarked ? -1 : 1));
+  })();
+
+  const openWorkflow = (id: string) => {
+    const local = localSessions.find((s) => s.sessionId === id);
+    if (local?.workflow) {
+      navigate("/workflow", { state: { result: local.workflow, sessionId: id } });
+    } else {
+      navigate("/workflow", { state: { sessionId: id } });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -62,9 +90,9 @@ const MyWorkflows = () => {
             <h1 className="text-2xl lg:text-3xl font-bold mb-2">My Workflows</h1>
             <p className="text-muted-foreground mb-8">All your mapped paths in one place.</p>
 
-            {loading ? (
+            {loading && localSessions.length === 0 ? (
               <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}</div>
-            ) : sessions.length === 0 ? (
+            ) : merged.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <FileX className="h-10 w-10 mx-auto mb-4 opacity-50" />
                 <p className="text-sm mb-1">No workflows yet.</p>
@@ -72,24 +100,25 @@ const MyWorkflows = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {sessions.map((wf) => (
-                  <Link key={wf.id} to="/workflow" className="flex items-center justify-between p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group">
+                {merged.map((wf) => (
+                  <button key={wf.id} onClick={() => openWorkflow(wf.id)} className="w-full flex items-center justify-between p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group text-left">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                         {wf.status === "Completed" ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Clock className="h-5 w-5 text-muted-foreground" />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium group-hover:text-primary transition-colors">{wf.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {wf.date}{wf.steps ? ` · ${wf.steps} steps` : ""}{wf.tools?.length ? ` · ${wf.tools.join(", ")}` : ""}
+                        <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+                          {wf.bookmarked && <Bookmark className="h-3.5 w-3.5 text-primary fill-primary" />}
+                          {wf.title}
                         </p>
+                        <p className="text-xs text-muted-foreground mt-1">{wf.date}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`text-xs px-2.5 py-1 rounded-full ${wf.status === "Completed" ? "bg-primary/10 text-primary" : wf.status === "In Progress" ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>{wf.status}</span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </Link>
+                  </button>
                 ))}
               </div>
             )}

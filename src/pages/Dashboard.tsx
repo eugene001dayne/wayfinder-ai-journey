@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight } from "lucide-react";
+import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight, Bookmark } from "lucide-react";
 import { getUserId, getUser, getUserSessions, startSession, type UserProfile, type Session } from "@/lib/api";
+import { getSavedSessions, type SavedSession } from "@/lib/storage";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
@@ -14,16 +15,23 @@ const navItems = [
 ];
 
 const Dashboard = () => {
-  const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as { prefillQuery?: string } | null)?.prefillQuery || "";
+
+  const [query, setQuery] = useState(prefill);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [localSessions, setLocalSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const userId = getUserId();
 
   useEffect(() => {
+    // Show local sessions instantly
+    setLocalSessions(getSavedSessions());
+
     if (!userId) { navigate("/onboarding"); return; }
     Promise.allSettled([getUser(userId), getUserSessions(userId)]).then(([uRes, sRes]) => {
       if (uRes.status === "fulfilled") setUser(uRes.value);
@@ -37,7 +45,6 @@ const Dashboard = () => {
     setSubmitting(true);
     try {
       const res = await startSession({ user_id: userId, raw_input: query });
-      // API returns { session_id, type, intent, clarifying_questions }
       const sessionId = res.session_id || res.id;
       const questions = res.clarifying_questions || res.intent?.clarifying_questions || [];
       navigate("/session", { state: { sessionId, questions, query } });
@@ -48,10 +55,43 @@ const Dashboard = () => {
     }
   };
 
+  // Merge API sessions with local, dedup by id
+  const mergedSessions = (() => {
+    const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
+    const apiCards = sessions.map((s) => ({
+      id: s.id || s.session_id || "",
+      title: s.title || "Untitled",
+      date: s.date || "",
+      status: s.status || "Completed",
+      hasLocal: localMap.has(s.id || s.session_id || ""),
+      bookmarked: localMap.get(s.id || s.session_id || "")?.bookmarked || false,
+    }));
+    // Add local-only sessions not in API
+    const apiIds = new Set(apiCards.map((c) => c.id));
+    const localOnly = localSessions.filter((s) => !apiIds.has(s.sessionId)).map((s) => ({
+      id: s.sessionId,
+      title: s.title,
+      date: s.date,
+      status: s.status,
+      hasLocal: true,
+      bookmarked: s.bookmarked || false,
+    }));
+    return [...localOnly, ...apiCards];
+  })();
+
   const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
   const latestNudge = user?.nudges?.[0] as { message?: string; text?: string; nudge_type?: string } | undefined;
+
+  const openWorkflow = (id: string) => {
+    const local = localSessions.find((s) => s.sessionId === id);
+    if (local?.workflow) {
+      navigate("/workflow", { state: { result: local.workflow, sessionId: id } });
+    } else {
+      navigate("/workflow", { state: { sessionId: id } });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -113,23 +153,26 @@ const Dashboard = () => {
 
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent sessions</h3>
-                {loading ? (
+                {loading && localSessions.length === 0 ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
-                ) : sessions.length === 0 ? (
+                ) : mergedSessions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Clock className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">No sessions yet. Start by describing what you want to accomplish!</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {sessions.map((session) => (
-                      <Link key={session.id} to="/workflow" className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group">
+                    {mergedSessions.map((session) => (
+                      <button key={session.id} onClick={() => openWorkflow(session.id)} className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group text-left">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                             {session.status === "Completed" ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
                           </div>
                           <div>
-                            <p className="text-sm font-medium group-hover:text-primary transition-colors">{session.title}</p>
+                            <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+                              {session.bookmarked && <Bookmark className="h-3 w-3 text-primary fill-primary" />}
+                              {session.title}
+                            </p>
                             <p className="text-xs text-muted-foreground">{session.date}</p>
                           </div>
                         </div>
@@ -138,7 +181,7 @@ const Dashboard = () => {
                           : session.status === "In Progress" ? "bg-accent/10 text-accent"
                           : "bg-muted text-muted-foreground"
                         }`}>{session.status}</span>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 )}
