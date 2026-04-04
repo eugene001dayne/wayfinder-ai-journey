@@ -3,41 +3,35 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Compass, ArrowLeft, Send, Loader2 } from "lucide-react";
-import { buildSession } from "@/lib/api";
-
-const fallbackQuestions = [
-  { id: 1, question: "How often do you currently do this?", placeholder: "e.g., Weekly, every Monday" },
-  { id: 2, question: "What data sources or tools do you use?", placeholder: "e.g., Google Analytics, CRM, spreadsheets" },
-  { id: 3, question: "What format should the final output be in?", placeholder: "e.g., PDF, email summary, slides" },
-  { id: 4, question: "How long does it take you currently?", placeholder: "e.g., About 3 hours each week" },
-];
+import { buildSession, getUserId, type ClarifyingQuestion } from "@/lib/api";
 
 const Session = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { session?: { id: string; query?: string; clarifying_questions?: { id: number; question: string; placeholder?: string }[] }; query?: string } | null;
+  const state = location.state as { session?: { id: string; query?: string; raw_input?: string; clarifying_questions?: ClarifyingQuestion[] }; query?: string } | null;
 
   const sessionId = state?.session?.id;
-  const query = state?.session?.query || state?.query || "Describe your goal";
-  const questions = state?.session?.clarifying_questions?.length ? state.session.clarifying_questions : fallbackQuestions;
+  const query = state?.session?.raw_input || state?.session?.query || state?.query || "Describe your goal";
+  const questions = state?.session?.clarifying_questions || [];
 
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const handleAnswer = (id: number, value: string) => {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+  const handleAnswer = (id: string | number, value: string) => {
+    setAnswers((prev) => ({ ...prev, [String(id)]: value }));
   };
 
   const handleSubmit = async () => {
+    if (!sessionId) return;
+    const userId = getUserId();
+    if (!userId) return;
     setLoading(true);
-    if (sessionId) {
-      try {
-        const stringAnswers: Record<string, string> = {};
-        Object.entries(answers).forEach(([k, v]) => { stringAnswers[k] = v; });
-        await buildSession({ session_id: sessionId, answers: stringAnswers });
-      } catch {}
+    try {
+      const result = await buildSession({ session_id: sessionId, user_id: userId, clarifying_answers: answers });
+      navigate("/workflow", { state: { result, sessionId } });
+    } catch {
+      navigate("/workflow", { state: { sessionId } });
     }
-    setTimeout(() => navigate("/workflow"), 2500);
   };
 
   if (loading) {
@@ -54,6 +48,17 @@ const Session = () => {
           </div>
           <h2 className="text-xl font-bold mb-2 glow-text">Mapping your path...</h2>
           <p className="text-muted-foreground text-sm">Analyzing your goals and finding the best tools</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">No clarifying questions received. <Link to="/dashboard" className="text-primary hover:underline">Go back</Link></p>
         </div>
       </div>
     );
@@ -83,10 +88,10 @@ const Session = () => {
           <h2 className="text-lg font-semibold mb-1">Let's refine your path</h2>
           <p className="text-sm text-muted-foreground mb-6">Answer a few questions so we can map the perfect workflow.</p>
           <div className="space-y-4">
-            {questions.map((q) => (
-              <div key={q.id} className="rounded-xl bg-card border border-border/50 p-5 animate-fade-up" style={{ animationDelay: `${q.id * 0.1}s` }}>
+            {questions.map((q, idx) => (
+              <div key={q.id} className="rounded-xl bg-card border border-border/50 p-5 animate-fade-up" style={{ animationDelay: `${idx * 0.1}s` }}>
                 <label className="text-sm font-medium mb-2 block">{q.question}</label>
-                <Input placeholder={q.placeholder || ""} value={answers[q.id] || ""} onChange={(e) => handleAnswer(q.id, e.target.value)} className="bg-muted/50 border-border/50" />
+                <Input placeholder={q.placeholder || ""} value={answers[String(q.id)] || ""} onChange={(e) => handleAnswer(q.id, e.target.value)} className="bg-muted/50 border-border/50" />
               </div>
             ))}
           </div>
