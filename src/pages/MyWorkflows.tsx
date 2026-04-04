@@ -37,13 +37,13 @@ const MyWorkflows = () => {
     const apiCards = sessions.map((s) => {
       const id = s.id || s.session_id || "";
       const local = localMap.get(id);
-      return { id, title: s.title || local?.title || "Untitled", date: s.date || local?.date || "", status: s.status || "Completed", bookmarked: local?.bookmarked || false, hasWorkflow: !!local?.workflow };
+      return { id, title: s.title || local?.title || null, date: s.date || local?.date || "", status: s.status || "Completed", bookmarked: local?.bookmarked || false, hasWorkflow: !!local?.workflow };
     });
     const apiIds = new Set(apiCards.map((c) => c.id));
     const localOnly = localSessions.filter((s) => !apiIds.has(s.sessionId)).map((s) => ({
       id: s.sessionId, title: s.title, date: s.date, status: s.status, bookmarked: s.bookmarked || false, hasWorkflow: !!s.workflow,
     }));
-    const all = [...localOnly, ...apiCards];
+    const all = [...localOnly, ...apiCards].filter((s) => s.title !== null);
     return all.sort((a, b) => (a.bookmarked === b.bookmarked ? 0 : a.bookmarked ? -1 : 1));
   })();
 
@@ -81,7 +81,7 @@ const MyWorkflows = () => {
           <div className="hidden lg:block" />
           <div className="flex items-center gap-3">
             <span className="text-xs px-3 py-1 rounded-full gradient-bg text-primary-foreground font-medium">{user?.ai_fitness_level || "—"}</span>
-            <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.name || "User"}</Link>
+            <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.full_name || user?.name || "User"}</Link>
           </div>
         </header>
 
