@@ -105,8 +105,10 @@ export interface WorkflowResult {
 }
 
 // POST /users
-export function createUser(data: UserPayload): Promise<UserProfile> {
-  return request("/users", { method: "POST", body: JSON.stringify(data) });
+export async function createUser(data: UserPayload): Promise<UserProfile> {
+  const res = await request<{ user: UserProfile } | UserProfile>("/users", { method: "POST", body: JSON.stringify(data) });
+  if ("user" in res && res.user) return res.user;
+  return res as UserProfile;
 }
 
 // GET /users/:id — response is { user: {...}, patterns: [], nudges: [] }
