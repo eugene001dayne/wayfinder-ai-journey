@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Compass, Briefcase, Users, Store, GraduationCap, Sparkles, ArrowRight, Check, Loader2 } from "lucide-react";
-import { createUser, setUserId } from "@/lib/api";
+import { createUser, setUserId, getUserId } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const roles = [
@@ -25,17 +25,21 @@ const aiTools = ["ChatGPT", "Claude", "Gemini", "Notion AI", "Midjourney", "None
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const locationState = location.state as { email?: string; userId?: string } | null;
+  const authEmail = locationState?.email || "";
+
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [industry, setIndustry] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [goal, setGoal] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const progress = step <= totalSteps ? (step / (totalSteps + 1)) * 100 : 100;
 
   const toggleTool = (tool: string) => {
@@ -43,10 +47,9 @@ const Onboarding = () => {
   };
 
   const canNext = () => {
-    if (step === 1) return name.trim() && email.trim();
-    if (step === 2) return role;
-    if (step === 3) return industry;
-    if (step === 4) return tools.length > 0;
+    if (step === 1) return name.trim() && role;
+    if (step === 2) return industry;
+    if (step === 3) return tools.length > 0;
     return true;
   };
 
@@ -54,14 +57,13 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else if (step === totalSteps) {
-      // Submit to API
       setSubmitting(true);
       try {
-        const user = await createUser({ full_name: name, email, role, industry, tools_they_use: tools, goals: goal });
+        const user = await createUser({ full_name: name, email: authEmail, role, industry, tools_they_use: tools, goals: goal });
         setUserId(user.id);
-        setStep(5);
-      } catch (e) {
-        toast({ title: "Error", description: "Could not create account. Please try again.", variant: "destructive" });
+        setStep(4);
+      } catch {
+        toast({ title: "Error", description: "Could not complete onboarding. Please try again.", variant: "destructive" });
       } finally {
         setSubmitting(false);
       }
@@ -86,20 +88,10 @@ const Onboarding = () => {
           {step === 1 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">What's your name and email?</h2>
-                <p className="text-muted-foreground text-sm">Let's get to know each other.</p>
+                <h2 className="text-2xl font-bold mb-2">Let's set up your profile</h2>
+                <p className="text-muted-foreground text-sm">What's your name and what do you do?</p>
               </div>
-              <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="bg-card border-border/50 h-12" />
-              <Input placeholder="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card border-border/50 h-12" />
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6 animate-fade-up">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">What best describes you?</h2>
-                <p className="text-muted-foreground text-sm">This helps us tailor your experience.</p>
-              </div>
+              <Input placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} className="bg-card border-border/50 h-12" />
               <div className="grid grid-cols-2 gap-3">
                 {roles.map((r) => (
                   <button
@@ -119,7 +111,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">What industry are you in?</h2>
@@ -138,7 +130,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">Your AI experience</h2>
@@ -172,7 +164,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <div className="text-center animate-fade-up">
               <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
                 <Compass className="h-10 w-10 text-primary-foreground" />
@@ -199,7 +191,7 @@ const Onboarding = () => {
                 {submitting ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
                 ) : (
-                  <>{step === 5 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" /></>
+                  <>{step === 4 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" /></>
                 )}
               </Button>
             </div>
@@ -207,7 +199,7 @@ const Onboarding = () => {
 
           {step <= totalSteps && (
             <div className="flex justify-center gap-2 mt-8">
-              {[1, 2, 3, 4].map((s) => (
+              {[1, 2, 3].map((s) => (
                 <div
                   key={s}
                   className={`h-1.5 rounded-full transition-all ${

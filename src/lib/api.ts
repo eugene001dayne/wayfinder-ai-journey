@@ -150,6 +150,27 @@ export function rateSession(data: { session_id: string; outcome_rating: number }
   return request("/sessions/rate", { method: "POST", body: JSON.stringify(data) });
 }
 
+// Magic link auth
+export interface MagicLinkResponse {
+  message: string;
+  is_new_user?: boolean;
+}
+
+export interface VerifyResponse {
+  user_id: string;
+  is_new_user: boolean;
+  onboarded: boolean;
+  profile?: UserProfile;
+}
+
+export function sendMagicLink(email: string): Promise<MagicLinkResponse> {
+  return request("/auth/magic-link", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export function verifyMagicLink(token: string, email: string): Promise<VerifyResponse> {
+  return request("/auth/verify", { method: "POST", body: JSON.stringify({ token, email }) });
+}
+
 // Helper to get/set user id
 export function getUserId(): string | null {
   return localStorage.getItem("wayfinder_user_id");
@@ -157,4 +178,16 @@ export function getUserId(): string | null {
 
 export function setUserId(id: string): void {
   localStorage.setItem("wayfinder_user_id", id);
+}
+
+export function getPendingEmail(): string | null {
+  return localStorage.getItem("wayfinder_pending_email");
+}
+
+export function setPendingEmail(email: string): void {
+  localStorage.setItem("wayfinder_pending_email", email);
+}
+
+export function clearPendingEmail(): void {
+  localStorage.removeItem("wayfinder_pending_email");
 }

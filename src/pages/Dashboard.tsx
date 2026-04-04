@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight, Bookmark } from "lucide-react";
-import { getUserId, getUser, getUserSessions, startSession, type UserProfile, type Session } from "@/lib/api";
+import { getUserId, setUserId, getUser, getUserSessions, startSession, verifyMagicLink, getPendingEmail, clearPendingEmail, type UserProfile, type Session } from "@/lib/api";
 import { getSavedSessions, type SavedSession } from "@/lib/storage";
 import PathLoader from "@/components/PathLoader";
 
@@ -18,6 +18,7 @@ const navItems = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const prefill = (location.state as { prefillQuery?: string } | null)?.prefillQuery || "";
 
   const [query, setQuery] = useState(prefill);
@@ -26,20 +27,54 @@ const Dashboard = () => {
   const [localSessions, setLocalSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
-  const userId = getUserId();
+  const [_verifying, setVerifying] = useState(false);
 
   useEffect(() => {
-    // Show local sessions instantly
-    setLocalSessions(getSavedSessions());
+    const token = searchParams.get("token");
+    const pendingEmail = getPendingEmail();
 
-    if (!userId) { navigate("/onboarding"); return; }
-    Promise.allSettled([getUser(userId), getUserSessions(userId)]).then(([uRes, sRes]) => {
+    // Magic link verification
+    if (token && pendingEmail) {
+      setVerifying(true);
+      verifyMagicLink(token, pendingEmail)
+        .then((res) => {
+          setUserId(res.user_id);
+          clearPendingEmail();
+          // Clear token from URL
+          searchParams.delete("token");
+          setSearchParams(searchParams, { replace: true });
+
+          if (res.is_new_user || !res.onboarded) {
+            navigate("/onboarding", { state: { email: pendingEmail, userId: res.user_id } });
+          } else {
+            // Load dashboard data
+            loadDashboard(res.user_id);
+          }
+        })
+        .catch(() => {
+          navigate("/");
+        })
+        .finally(() => setVerifying(false));
+      return;
+    }
+
+    // Normal dashboard load
+    const userId = getUserId();
+    if (!userId) { navigate("/"); return; }
+    setLocalSessions(getSavedSessions());
+    loadDashboard(userId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDashboard = (uid: string) => {
+    setLocalSessions(getSavedSessions());
+    Promise.allSettled([getUser(uid), getUserSessions(uid)]).then(([uRes, sRes]) => {
       if (uRes.status === "fulfilled") setUser(uRes.value);
       if (sRes.status === "fulfilled") setSessions(Array.isArray(sRes.value) ? sRes.value : []);
       setLoading(false);
     });
-  }, [userId, navigate]);
+  };
+
+  const userId = getUserId();
 
   const handleSubmit = async () => {
     if (!query.trim() || !userId) return;
