@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight, Bookmark } from "lucide-react";
 import { getUserId, getUser, getUserSessions, startSession, type UserProfile, type Session } from "@/lib/api";
 import { getSavedSessions, type SavedSession } from "@/lib/storage";
+import PathLoader from "@/components/PathLoader";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
@@ -92,6 +93,8 @@ const Dashboard = () => {
       navigate("/workflow", { state: { sessionId: id } });
     }
   };
+
+  if (submitting) return <PathLoader />;
 
   return (
     <div className="min-h-screen bg-background flex">

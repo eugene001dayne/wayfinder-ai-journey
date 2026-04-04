@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Compass, ArrowLeft, Send, Loader2 } from "lucide-react";
 import { buildSession, getUserId } from "@/lib/api";
 import { saveSession } from "@/lib/storage";
+import PathLoader from "@/components/PathLoader";
 
 const Session = () => {
   const navigate = useNavigate();
@@ -53,22 +54,7 @@ const Session = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-32 h-32 mx-auto mb-8">
-            <svg className="w-32 h-32" viewBox="0 0 120 120">
-              <path d="M20 100 Q40 60 60 70 Q80 80 100 20" fill="none" stroke="hsl(217 91% 60%)" strokeWidth="3" strokeDasharray="1000" className="animate-[path-draw_2s_ease-in-out_infinite]" style={{ strokeDashoffset: 0 }} />
-              <circle r="4" fill="hsl(263 70% 52%)">
-                <animateMotion dur="2s" repeatCount="indefinite" path="M20 100 Q40 60 60 70 Q80 80 100 20" />
-              </circle>
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold mb-2 glow-text">Mapping your path...</h2>
-          <p className="text-muted-foreground text-sm">Analyzing your goals and finding the best tools</p>
-        </div>
-      </div>
-    );
+    return <PathLoader />;
   }
 
   if (questions.length === 0) {
