@@ -212,7 +212,7 @@ const Onboarding = () => {
                 {submitting ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</>
                 ) : (
-                  <>{step === 5 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" /></>
+                  <>{step === 4 ? "Go to Dashboard" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" /></>
                 )}
               </Button>
             </div>
