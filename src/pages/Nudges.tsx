@@ -77,7 +77,7 @@ const Nudges = () => {
                 {nudges.map((nudge, i) => {
                   const isDismissed = dismissed.has(i);
                   return (
-                    <div key={i} className={`rounded-xl bg-card border p-5 transition-all ${isDismissed ? "border-border/30 opacity-50" : nudge.urgent ? "border-primary/30" : "border-primary/20 hover:border-primary/40"}`}>
+                    <div key={i} className={`rounded-xl bg-card border p-5 transition-all ${isDismissed ? "border-border/30 opacity-50" : "border-primary/20 hover:border-primary/40"}`}>
                       <div className="flex items-start gap-4">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                           <Zap className="h-5 w-5 text-primary" />
