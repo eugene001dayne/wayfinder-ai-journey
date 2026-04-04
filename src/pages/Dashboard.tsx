@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [localSessions, setLocalSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [_verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const token = searchParams.get("token");
