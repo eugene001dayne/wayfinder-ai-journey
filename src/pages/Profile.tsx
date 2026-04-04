@@ -52,7 +52,7 @@ const Profile = () => {
                 <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mx-auto mb-4">
                   <User className="h-10 w-10 text-primary-foreground" />
                 </div>
-                <h2 className="text-lg font-bold mb-1">{user?.name || "User"}</h2>
+                <h2 className="text-lg font-bold mb-1">{user?.full_name || user?.name || "User"}</h2>
                 <p className="text-sm text-muted-foreground mb-4">{user?.role || ""}</p>
                 <div className="space-y-2 text-left">
                   {user?.email && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Mail className="h-3 w-3" /> {user.email}</div>}
