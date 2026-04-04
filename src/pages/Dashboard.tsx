@@ -28,6 +28,43 @@ const Dashboard = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    const hash = window.location.hash;
+    
+    // Handle magic link token from Supabase
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const email = localStorage.getItem('pending_email');
+      
+      if (accessToken && email) {
+        // Clear the hash from URL cleanly
+        window.history.replaceState(null, '', window.location.pathname);
+        
+        // Fetch user profile by email
+        fetch(`https://wayfinder-backend-au9t.onrender.com/users/email/${encodeURIComponent(email)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.user) {
+              localStorage.setItem('wayfinder_user_id', data.user.id);
+              localStorage.removeItem('pending_email');
+              if (data.user.onboarded) {
+                loadDashboard(data.user.id);
+              } else {
+                navigate('/onboarding');
+              }
+            } else {
+              // New user — go to onboarding
+              localStorage.removeItem('pending_email');
+              navigate('/onboarding');
+            }
+          })
+          .catch(() => navigate('/'));
+        return;
+      }
+    }
+
+    // Normal load — already logged in
     const userId = getUserId();
     if (!userId) { navigate("/"); return; }
     setLocalSessions(getSavedSessions());
