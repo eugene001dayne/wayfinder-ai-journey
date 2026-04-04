@@ -185,7 +185,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <div className="text-center animate-fade-up">
               <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
                 <Compass className="h-10 w-10 text-primary-foreground" />
