@@ -28,10 +28,8 @@ const Onboarding = () => {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Get email and userId from magic link verification
   const locationState = location.state as { email?: string; userId?: string } | null;
   const authEmail = locationState?.email || "";
-  const authUserId = locationState?.userId || getUserId() || "";
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -133,25 +131,6 @@ const Onboarding = () => {
           )}
 
           {step === 3 && (
-            <div className="space-y-6 animate-fade-up">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">What industry are you in?</h2>
-                <p className="text-muted-foreground text-sm">We'll customize recommendations for your field.</p>
-              </div>
-              <select
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                className="w-full h-12 rounded-xl bg-card border border-border/50 px-4 text-foreground text-sm focus:outline-none focus:border-primary"
-              >
-                <option value="">Select your industry</option>
-                {industries.map((ind) => (
-                  <option key={ind} value={ind}>{ind}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {step === 4 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">Your AI experience</h2>
