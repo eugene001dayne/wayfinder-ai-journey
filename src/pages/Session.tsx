@@ -43,6 +43,9 @@ const Session = () => {
         clarifying_answers[q] = answers[i] || "";
       });
       const result = await buildSession({ session_id: sessionId, user_id: userId, clarifying_answers });
+      // Save to localStorage with query for regeneration
+      const wfTitle = result?.workflow?.title || result?.title || query;
+      saveSession({ sessionId, title: wfTitle, date: new Date().toLocaleDateString(), status: "Completed", query, workflow: result });
       navigate("/workflow", { state: { result, sessionId } });
     } catch {
       navigate("/workflow", { state: { sessionId } });
