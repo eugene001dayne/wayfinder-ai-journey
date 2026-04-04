@@ -45,7 +45,7 @@ const Dashboard = () => {
     }
   };
 
-  const displayName = user?.name?.split(" ")[0] || "there";
+  const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
   const latestNudge = user?.nudges?.[0];
