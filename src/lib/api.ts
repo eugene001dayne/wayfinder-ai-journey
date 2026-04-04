@@ -109,9 +109,13 @@ export function createUser(data: UserPayload): Promise<UserProfile> {
   return request("/users", { method: "POST", body: JSON.stringify(data) });
 }
 
-// GET /users/:id
-export function getUser(id: string): Promise<UserProfile> {
-  return request(`/users/${id}`);
+// GET /users/:id — response is { user: {...}, patterns: [], nudges: [] }
+export async function getUser(id: string): Promise<UserProfile> {
+  const res = await request<{ user: UserProfile; patterns?: Pattern[]; nudges?: Nudge[] } | UserProfile>(`/users/${id}`);
+  if ("user" in res && res.user) {
+    return { ...res.user, patterns: res.patterns || [], nudges: res.nudges || [] };
+  }
+  return res as UserProfile;
 }
 
 // POST /sessions/start
