@@ -18,7 +18,6 @@ const navItems = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const prefill = (location.state as { prefillQuery?: string } | null)?.prefillQuery || "";
 
   const [query, setQuery] = useState(prefill);
@@ -27,38 +26,8 @@ const Dashboard = () => {
   const [localSessions, setLocalSessions] = useState<SavedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [_verifying, setVerifying] = useState(false);
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    const pendingEmail = getPendingEmail();
-
-    // Magic link verification
-    if (token && pendingEmail) {
-      setVerifying(true);
-      verifyMagicLink(token, pendingEmail)
-        .then((res) => {
-          setUserId(res.user_id);
-          clearPendingEmail();
-          // Clear token from URL
-          searchParams.delete("token");
-          setSearchParams(searchParams, { replace: true });
-
-          if (res.is_new_user || !res.onboarded) {
-            navigate("/onboarding", { state: { email: pendingEmail, userId: res.user_id } });
-          } else {
-            // Load dashboard data
-            loadDashboard(res.user_id);
-          }
-        })
-        .catch(() => {
-          navigate("/");
-        })
-        .finally(() => setVerifying(false));
-      return;
-    }
-
-    // Normal dashboard load
     const userId = getUserId();
     if (!userId) { navigate("/"); return; }
     setLocalSessions(getSavedSessions());
