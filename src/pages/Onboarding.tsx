@@ -90,11 +90,26 @@ const Onboarding = () => {
           {step === 1 && (
             <div className="space-y-6 animate-fade-up">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">What's your name and email?</h2>
-                <p className="text-muted-foreground text-sm">Let's get to know each other.</p>
+                <h2 className="text-2xl font-bold mb-2">Let's set up your profile</h2>
+                <p className="text-muted-foreground text-sm">What's your name and what do you do?</p>
               </div>
-              <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="bg-card border-border/50 h-12" />
-              <Input placeholder="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card border-border/50 h-12" />
+              <Input placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} className="bg-card border-border/50 h-12" />
+              <div className="grid grid-cols-2 gap-3">
+                {roles.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setRole(r.id)}
+                    className={`p-4 rounded-xl border text-left transition-all ${
+                      role === r.id
+                        ? "border-primary bg-primary/10 glow-border"
+                        : "border-border/50 bg-card hover:border-primary/30"
+                    }`}
+                  >
+                    <r.icon className={`h-6 w-6 mb-2 ${role === r.id ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className="text-sm font-medium">{r.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
