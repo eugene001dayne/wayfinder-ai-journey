@@ -13,75 +13,125 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export interface UserPayload {
-  name: string;
   email: string;
+  full_name: string;
   role: string;
   industry: string;
-  tools: string[];
-  goal: string;
+  tools_they_use: string[];
+  goals: string;
+}
+
+export interface Pattern {
+  description: string;
+  suggested_fix: string;
+  [key: string]: unknown;
+}
+
+export interface Nudge {
+  message: string;
+  nudge_type: string;
+  [key: string]: unknown;
 }
 
 export interface UserProfile {
   id: string;
-  name: string;
-  email: string;
-  role: string;
-  industry: string;
-  tools: string[];
-  goal: string;
+  full_name?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  industry?: string;
+  tools_they_use?: string[];
+  goals?: string;
   ai_fitness_score?: number;
   ai_fitness_level?: string;
   ai_fitness_focus?: string;
-  patterns?: { title: string; desc: string; strength?: number }[];
-  nudges?: { text: string; urgent?: boolean; category?: string; date?: string }[];
-  sessions?: { title: string; date: string; status?: string; rating?: number; steps?: number; tools?: string[] }[];
+  patterns?: Pattern[];
+  nudges?: Nudge[];
+}
+
+export interface ClarifyingQuestion {
+  id: number | string;
+  question: string;
+  placeholder?: string;
 }
 
 export interface Session {
   id: string;
-  title: string;
-  date: string;
-  status: string;
+  title?: string;
+  date?: string;
+  status?: string;
   rating?: number;
   steps?: number;
   tools?: string[];
   query?: string;
-  clarifying_questions?: { id: number; question: string; placeholder?: string }[];
+  raw_input?: string;
+  clarifying_questions?: ClarifyingQuestion[];
+}
+
+export interface WorkflowTool {
+  name: string;
+  why: string;
+  link?: string;
+  pricing?: string;
+}
+
+export interface WorkflowStep {
+  step: number;
+  tool: string;
+  what_to_do: string;
+  prompt_to_use?: string;
+  expected_output?: string;
+  time_estimate?: string;
 }
 
 export interface WorkflowResult {
-  id: string;
-  title: string;
+  id?: string;
+  session_id?: string;
+  workflow?: {
+    title?: string;
+    overview?: string;
+    recommended_tools?: WorkflowTool[];
+    steps?: WorkflowStep[];
+    pro_tips?: string[];
+    next_level?: string;
+  };
+  // Also support flat structure
+  title?: string;
   overview?: string;
-  tools?: { name: string; why: string; link?: string; pricing?: string }[];
-  steps?: { step: number; action: string; tool: string; prompt?: string; output?: string; time?: string }[];
+  recommended_tools?: WorkflowTool[];
+  steps?: WorkflowStep[];
   pro_tips?: string[];
-  whats_next?: string[];
+  next_level?: string;
 }
 
-// POST /users — create user on onboarding completion
+// POST /users
 export function createUser(data: UserPayload): Promise<UserProfile> {
   return request("/users", { method: "POST", body: JSON.stringify(data) });
 }
 
-// GET /users/:id — fetch user profile, patterns, nudges
+// GET /users/:id
 export function getUser(id: string): Promise<UserProfile> {
   return request(`/users/${id}`);
 }
 
-// POST /sessions/start — when user submits "Map My Path"
-export function startSession(data: { user_id: string; query: string }): Promise<Session> {
+// POST /sessions/start
+export function startSession(data: { user_id: string; raw_input: string }): Promise<Session> {
   return request("/sessions/start", { method: "POST", body: JSON.stringify(data) });
 }
 
-// POST /sessions/build — when user submits clarifying answers
-export function buildSession(data: { session_id: string; answers: Record<string, string> }): Promise<WorkflowResult> {
+// POST /sessions/build
+export function buildSession(data: { session_id: string; user_id: string; clarifying_answers: Record<string, string> }): Promise<WorkflowResult> {
   return request("/sessions/build", { method: "POST", body: JSON.stringify(data) });
 }
 
-// GET /sessions/:user_id — fetch user's past sessions
+// GET /sessions/:user_id
 export function getUserSessions(userId: string): Promise<Session[]> {
   return request(`/sessions/${userId}`);
+}
+
+// POST rating
+export function rateSession(data: { session_id: string; outcome_rating: number }): Promise<unknown> {
+  return request("/sessions/rate", { method: "POST", body: JSON.stringify(data) });
 }
 
 // Helper to get/set user id

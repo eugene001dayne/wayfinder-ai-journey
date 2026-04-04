@@ -75,16 +75,10 @@ const MyPatterns = () => {
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Lightbulb className="h-5 w-5 text-primary" />
                       </div>
-                      <h3 className="text-sm font-semibold">{pattern.title}</h3>
+                     <h3 className="text-sm font-semibold">{pattern.description}</h3>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-4">{pattern.desc}</p>
-                    {pattern.strength != null && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-muted rounded-full">
-                          <div className="h-full gradient-bg rounded-full" style={{ width: `${pattern.strength}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{pattern.strength}%</span>
-                      </div>
+                    {pattern.suggested_fix && (
+                      <p className="text-xs text-muted-foreground mb-2"><span className="text-foreground/70 font-medium">Suggestion:</span> {pattern.suggested_fix}</p>
                     )}
                   </div>
                 ))}

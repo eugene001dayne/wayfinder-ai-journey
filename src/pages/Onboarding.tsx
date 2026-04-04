@@ -57,7 +57,7 @@ const Onboarding = () => {
       // Submit to API
       setSubmitting(true);
       try {
-        const user = await createUser({ name, email, role, industry, tools, goal });
+        const user = await createUser({ full_name: name, email, role, industry, tools_they_use: tools, goals: goal });
         setUserId(user.id);
         setStep(5);
       } catch (e) {

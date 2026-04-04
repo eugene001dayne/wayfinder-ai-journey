@@ -52,7 +52,7 @@ const Profile = () => {
                 <div className="w-20 h-20 rounded-full gradient-bg flex items-center justify-center mx-auto mb-4">
                   <User className="h-10 w-10 text-primary-foreground" />
                 </div>
-                <h2 className="text-lg font-bold mb-1">{user?.name || "User"}</h2>
+                <h2 className="text-lg font-bold mb-1">{user?.full_name || user?.name || "User"}</h2>
                 <p className="text-sm text-muted-foreground mb-4">{user?.role || ""}</p>
                 <div className="space-y-2 text-left">
                   {user?.email && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Mail className="h-3 w-3" /> {user.email}</div>}
@@ -103,8 +103,8 @@ const Profile = () => {
                   <div className="space-y-3">
                     {patterns.map((p, i) => (
                       <div key={i} className="p-4 rounded-lg bg-muted/30 border border-border/30">
-                        <h4 className="text-sm font-medium mb-1">{p.title}</h4>
-                        <p className="text-xs text-muted-foreground">{p.desc}</p>
+                         <h4 className="text-sm font-medium mb-1">{p.description}</h4>
+                         {p.suggested_fix && <p className="text-xs text-muted-foreground">{p.suggested_fix}</p>}
                       </div>
                     ))}
                   </div>
@@ -118,10 +118,10 @@ const Profile = () => {
                 ) : (
                   <div className="space-y-3">
                     {nudges.map((n, i) => (
-                      <div key={i} className={`p-4 rounded-lg border ${n.urgent ? "border-primary/30 bg-primary/5" : "border-border/30 bg-muted/30"}`}>
-                        <div className="flex items-start gap-3">
-                          <Zap className={`h-4 w-4 mt-0.5 shrink-0 ${n.urgent ? "text-primary" : "text-muted-foreground"}`} />
-                          <p className="text-sm text-foreground/80">{n.text}</p>
+                       <div key={i} className="p-4 rounded-lg border border-border/30 bg-muted/30">
+                         <div className="flex items-start gap-3">
+                           <Zap className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                          <p className="text-sm text-foreground/80">{n.message}</p>
                         </div>
                       </div>
                     ))}

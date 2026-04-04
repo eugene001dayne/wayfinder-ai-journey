@@ -36,7 +36,7 @@ const Dashboard = () => {
     if (!query.trim() || !userId) return;
     setSubmitting(true);
     try {
-      const session = await startSession({ user_id: userId, query });
+      const session = await startSession({ user_id: userId, raw_input: query });
       navigate("/session", { state: { session, query } });
     } catch {
       navigate("/session", { state: { query } });
@@ -45,10 +45,10 @@ const Dashboard = () => {
     }
   };
 
-  const displayName = user?.name?.split(" ")[0] || "there";
+  const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
-  const latestNudge = user?.nudges?.[0];
+  const latestNudge = user?.nudges?.[0] as { message?: string; text?: string; nudge_type?: string } | undefined;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -77,7 +77,7 @@ const Dashboard = () => {
             {loading ? <Skeleton className="h-6 w-20 rounded-full" /> : (
               <>
                 <span className="text-xs px-3 py-1 rounded-full gradient-bg text-primary-foreground font-medium">{fitnessLevel}</span>
-                <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.name || "User"}</Link>
+                <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.full_name || user?.name || "User"}</Link>
               </>
             )}
           </div>
@@ -173,7 +173,7 @@ const Dashboard = () => {
                   </div>
                   {latestNudge ? (
                     <>
-                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.text}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.message || (latestNudge as any).text}</p>
                       <button className="text-xs text-primary hover:underline flex items-center gap-1">
                         Try it now <ArrowRight className="h-3 w-3" />
                       </button>

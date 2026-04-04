@@ -77,17 +77,16 @@ const Nudges = () => {
                 {nudges.map((nudge, i) => {
                   const isDismissed = dismissed.has(i);
                   return (
-                    <div key={i} className={`rounded-xl bg-card border p-5 transition-all ${isDismissed ? "border-border/30 opacity-50" : nudge.urgent ? "border-primary/30" : "border-primary/20 hover:border-primary/40"}`}>
+                    <div key={i} className={`rounded-xl bg-card border p-5 transition-all ${isDismissed ? "border-border/30 opacity-50" : "border-primary/20 hover:border-primary/40"}`}>
                       <div className="flex items-start gap-4">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                           <Zap className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            {nudge.category && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{nudge.category}</span>}
-                            {nudge.date && <span className="text-xs text-muted-foreground">{nudge.date}</span>}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{nudge.text}</p>
+                           {nudge.nudge_type && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{nudge.nudge_type}</span>}
+                           </div>
+                           <p className="text-sm text-muted-foreground">{nudge.message}</p>
                           <div className="flex items-center gap-3 mt-3">
                             {!isDismissed ? (
                               <>
