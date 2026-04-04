@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Compass, Briefcase, Users, Store, GraduationCap, Sparkles, ArrowRight, Check, Loader2 } from "lucide-react";
-import { createUser, setUserId } from "@/lib/api";
+import { createUser, setUserId, getUserId } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const roles = [
@@ -25,17 +25,23 @@ const aiTools = ["ChatGPT", "Claude", "Gemini", "Notion AI", "Midjourney", "None
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Get email and userId from magic link verification
+  const locationState = location.state as { email?: string; userId?: string } | null;
+  const authEmail = locationState?.email || "";
+  const authUserId = locationState?.userId || getUserId() || "";
+
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [industry, setIndustry] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [goal, setGoal] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const progress = step <= totalSteps ? (step / (totalSteps + 1)) * 100 : 100;
 
   const toggleTool = (tool: string) => {
@@ -43,10 +49,9 @@ const Onboarding = () => {
   };
 
   const canNext = () => {
-    if (step === 1) return name.trim() && email.trim();
-    if (step === 2) return role;
-    if (step === 3) return industry;
-    if (step === 4) return tools.length > 0;
+    if (step === 1) return name.trim() && role;
+    if (step === 2) return industry;
+    if (step === 3) return tools.length > 0;
     return true;
   };
 
@@ -54,14 +59,13 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else if (step === totalSteps) {
-      // Submit to API
       setSubmitting(true);
       try {
-        const user = await createUser({ full_name: name, email, role, industry, tools_they_use: tools, goals: goal });
+        const user = await createUser({ full_name: name, email: authEmail, role, industry, tools_they_use: tools, goals: goal });
         setUserId(user.id);
-        setStep(5);
-      } catch (e) {
-        toast({ title: "Error", description: "Could not create account. Please try again.", variant: "destructive" });
+        setStep(4);
+      } catch {
+        toast({ title: "Error", description: "Could not complete onboarding. Please try again.", variant: "destructive" });
       } finally {
         setSubmitting(false);
       }
