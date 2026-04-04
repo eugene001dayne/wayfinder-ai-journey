@@ -9,7 +9,7 @@ import { saveSession, toggleBookmark, getSessionBySessionId } from "@/lib/storag
 /* ── sub-components ── */
 
 const ToolCard = ({ tool }: { tool: WorkflowResultType["recommended_tools"] extends (infer T)[] | undefined ? T : never }) => {
-  const t = tool as { name: string; why: string; link?: string; pricing?: string };
+  const t = tool as { name: string; why: string; url?: string; link?: string; pricing?: string; free_alternative?: string };
   return (
     <div className="p-4 rounded-xl bg-card border border-border/50 flex items-start justify-between gap-4">
       <div className="flex-1">
@@ -19,11 +19,16 @@ const ToolCard = ({ tool }: { tool: WorkflowResultType["recommended_tools"] exte
         </div>
         <p className="text-xs text-muted-foreground">{t.why}</p>
       </div>
-      {t.link && (
-        <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      )}
+      <div className="flex flex-col items-end gap-2">
+  {(t.url || t.link) && (
+    <a href={t.url || t.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+      <ExternalLink className="h-4 w-4" />
+    </a>
+  )}
+  {t.free_alternative && (
+    <p className="text-xs text-muted-foreground text-right">Free alt: {t.free_alternative}</p>
+  )}
+</div>
     </div>
   );
 };
@@ -32,17 +37,20 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
   <div className="rounded-xl bg-card border border-border/50 p-6">
     <div className="flex items-start gap-4">
       <div className="h-8 w-8 rounded-lg gradient-bg flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
-        {step.step || idx + 1}
+        {step.step_number || step.step || idx + 1}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <h3 className="font-semibold">{step.what_to_do}</h3>
+          <h3 className="font-semibold">{step.title || step.what_to_do}</h3>
           {step.time_estimate && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
               <Clock className="h-3 w-3" /> {step.time_estimate}
             </div>
           )}
         </div>
+        {step.title && step.what_to_do && (
+          <p className="text-sm text-foreground/80 mb-2">{step.what_to_do}</p>
+        )}
         <p className="text-xs text-primary mb-3">Using {step.tool}</p>
         {step.prompt_to_use && (
           <div className="relative rounded-lg bg-muted/50 border border-border/50 p-4 mb-3">
@@ -53,9 +61,32 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
           </div>
         )}
         {step.expected_output && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-3">
             <span className="text-foreground/70 font-medium">Expected output:</span> {step.expected_output}
           </p>
+        )}
+
+        {/* Validation checkpoint */}
+        {step.validation && (
+          <div className="mt-3 rounded-lg bg-primary/5 border border-primary/20 p-3">
+            <p className="text-xs font-medium text-primary mb-1">✓ Checkpoint</p>
+            <p className="text-xs text-foreground/80 mb-1">{step.validation.checkpoint_question}</p>
+            <p className="text-xs text-muted-foreground">✅ Yes: {step.validation.if_yes}</p>
+            <p className="text-xs text-muted-foreground">❌ No: {step.validation.if_no}</p>
+          </div>
+        )}
+
+        {/* Fallback */}
+        {step.fallback && (
+          <div className="mt-3 rounded-lg bg-muted/30 border border-border/30 p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">🔄 If you get stuck</p>
+            {step.fallback.if_tool_unavailable && (
+              <p className="text-xs text-muted-foreground">No access to tool: {step.fallback.if_tool_unavailable}</p>
+            )}
+            {step.fallback.if_stuck && (
+              <p className="text-xs text-muted-foreground">Simpler option: {step.fallback.if_stuck}</p>
+            )}
+          </div>
         )}
       </div>
     </div>
