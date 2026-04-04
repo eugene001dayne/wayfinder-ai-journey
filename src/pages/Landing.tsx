@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Compass, ArrowRight, Zap, Target, TrendingUp, Users, Briefcase, GraduationCap, Store, Star, Mail, Loader2, CheckCircle2 } from "lucide-react";

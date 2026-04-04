@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight, Bookmark, Loader2 } from "lucide-react";
+import { Compass, Home, Workflow, Brain, Bell, User, Send, Clock, CheckCircle2, Zap, TrendingUp, ArrowRight, Bookmark } from "lucide-react";
 import { getUserId, setUserId, getUser, getUserSessions, startSession, verifyMagicLink, getPendingEmail, clearPendingEmail, type UserProfile, type Session } from "@/lib/api";
 import { getSavedSessions, type SavedSession } from "@/lib/storage";
 import PathLoader from "@/components/PathLoader";
