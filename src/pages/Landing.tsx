@@ -13,6 +13,9 @@ const Landing = () => {
             <span className="text-lg font-bold text-foreground">Wayfinder</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/signin">
+              <Button variant="ghost" size="sm">Sign In</Button>
+            </Link>
             <Link to="/onboarding">
               <Button variant="glow" size="sm">Get Started</Button>
             </Link>

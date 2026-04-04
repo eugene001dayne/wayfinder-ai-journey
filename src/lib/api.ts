@@ -104,6 +104,13 @@ export interface WorkflowResult {
   next_level?: string;
 }
 
+// GET /users/email/:email
+export async function getUserByEmail(email: string): Promise<UserProfile> {
+  const res = await request<{ user: UserProfile } | UserProfile>(`/users/email/${encodeURIComponent(email)}`);
+  if ("user" in res && res.user) return res.user;
+  return res as UserProfile;
+}
+
 // POST /users
 export async function createUser(data: UserPayload): Promise<UserProfile> {
   const res = await request<{ user: UserProfile } | UserProfile>("/users", { method: "POST", body: JSON.stringify(data) });
