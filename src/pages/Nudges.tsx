@@ -84,10 +84,9 @@ const Nudges = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            {nudge.category && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{nudge.category}</span>}
-                            {nudge.date && <span className="text-xs text-muted-foreground">{nudge.date}</span>}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{nudge.text}</p>
+                           {nudge.nudge_type && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{nudge.nudge_type}</span>}
+                           </div>
+                           <p className="text-sm text-muted-foreground">{nudge.message}</p>
                           <div className="flex items-center gap-3 mt-3">
                             {!isDismissed ? (
                               <>
