@@ -29,19 +29,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     const hash = window.location.hash;
-    
-    // Handle magic link token from Supabase
+
     if (hash && hash.includes('access_token')) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
       const email = localStorage.getItem('pending_email');
-      
+
       if (accessToken && email) {
-        // Clear the hash from URL cleanly
         window.history.replaceState(null, '', window.location.pathname);
-        
-        // Fetch user profile by email
         fetch(`https://wayfinder-backend-au9t.onrender.com/users/email/${encodeURIComponent(email)}`)
           .then(res => res.json())
           .then(data => {
@@ -54,7 +49,6 @@ const Dashboard = () => {
                 navigate('/onboarding');
               }
             } else {
-              // New user — go to onboarding
               localStorage.removeItem('pending_email');
               navigate('/onboarding');
             }
@@ -64,7 +58,6 @@ const Dashboard = () => {
       }
     }
 
-    // Normal load — already logged in
     const userId = getUserId();
     if (!userId) { navigate("/"); return; }
     setLocalSessions(getSavedSessions());
@@ -97,27 +90,29 @@ const Dashboard = () => {
     }
   };
 
-  // Merge API sessions with local, dedup by id
   const mergedSessions = (() => {
     const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
-    const apiCards = sessions.map((s) => ({
-      id: s.id || s.session_id || "",
-      title: s.title || "Untitled",
-      date: s.date || "",
-      status: s.status || "Completed",
-      hasLocal: localMap.has(s.id || s.session_id || ""),
-      bookmarked: localMap.get(s.id || s.session_id || "")?.bookmarked || false,
-    }));
-    // Add local-only sessions not in API
+    const apiCards = sessions
+      .filter((s) => s.title && s.title !== "Untitled" && s.status === "completed")
+      .map((s) => ({
+        id: s.id || s.session_id || "",
+        title: s.title!,
+        date: s.date || "",
+        status: s.status || "completed",
+        hasLocal: localMap.has(s.id || s.session_id || ""),
+        bookmarked: localMap.get(s.id || s.session_id || "")?.bookmarked || false,
+      }));
     const apiIds = new Set(apiCards.map((c) => c.id));
-    const localOnly = localSessions.filter((s) => !apiIds.has(s.sessionId)).map((s) => ({
-      id: s.sessionId,
-      title: s.title,
-      date: s.date,
-      status: s.status,
-      hasLocal: true,
-      bookmarked: s.bookmarked || false,
-    }));
+    const localOnly = localSessions
+      .filter((s) => !apiIds.has(s.sessionId) && s.title && s.title !== "Untitled")
+      .map((s) => ({
+        id: s.sessionId,
+        title: s.title,
+        date: s.date,
+        status: s.status,
+        hasLocal: true,
+        bookmarked: s.bookmarked || false,
+      }));
     return [...localOnly, ...apiCards];
   })();
 
@@ -197,7 +192,7 @@ const Dashboard = () => {
 
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent sessions</h3>
-                {loading && localSessions.length === 0 ? (
+                {loading ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
                 ) : mergedSessions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -210,7 +205,7 @@ const Dashboard = () => {
                       <button key={session.id} onClick={() => openWorkflow(session.id)} className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group text-left">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            {session.status === "Completed" ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                            {session.status === "completed" ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
                           </div>
                           <div>
                             <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -221,7 +216,7 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <span className={`text-xs px-2.5 py-1 rounded-full ${
-                          session.status === "Completed" ? "bg-primary/10 text-primary"
+                          session.status === "completed" ? "bg-primary/10 text-primary"
                           : session.status === "In Progress" ? "bg-accent/10 text-accent"
                           : "bg-muted text-muted-foreground"
                         }`}>{session.status}</span>

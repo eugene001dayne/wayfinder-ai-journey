@@ -50,7 +50,7 @@ const MyPatterns = () => {
           <div className="hidden lg:block" />
           <div className="flex items-center gap-3">
             <span className="text-xs px-3 py-1 rounded-full gradient-bg text-primary-foreground font-medium">{user?.ai_fitness_level || "—"}</span>
-            <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.name || "User"}</Link>
+            <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{user?.full_name || user?.name || "User"}</Link>
           </div>
         </header>
 
