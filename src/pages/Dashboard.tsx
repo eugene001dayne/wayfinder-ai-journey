@@ -41,6 +41,11 @@ const Dashboard = () => {
           .then(res => res.json())
           .then(data => {
             if (data.user) {
+              const previousUserId = localStorage.getItem('wayfinder_user_id');
+              if (previousUserId && previousUserId !== data.user.id) {
+                // Different user logging in — clear old user's cached sessions
+                localStorage.removeItem(`wayfinder_sessions_${previousUserId}`);
+              }
               localStorage.setItem('wayfinder_user_id', data.user.id);
               localStorage.removeItem('pending_email');
               if (data.user.onboarded) {

@@ -10,11 +10,14 @@ export interface SavedSession {
   workflow?: WorkflowResult;
 }
 
-const STORAGE_KEY = "wayfinder_sessions";
+const getUserStorageKey = () => {
+  const userId = localStorage.getItem('wayfinder_user_id') || 'anonymous';
+  return `wayfinder_sessions_${userId}`;
+};
 
 export function getSavedSessions(): SavedSession[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(getUserStorageKey()) || "[]");
   } catch {
     return [];
   }
@@ -28,7 +31,7 @@ export function saveSession(session: SavedSession): void {
   } else {
     existing.unshift(session);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+  localStorage.setItem(getUserStorageKey(), JSON.stringify(existing));
 }
 
 export function toggleBookmark(sessionId: string): boolean {
@@ -36,7 +39,7 @@ export function toggleBookmark(sessionId: string): boolean {
   const s = sessions.find((s) => s.sessionId === sessionId);
   if (s) {
     s.bookmarked = !s.bookmarked;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    localStorage.setItem(getUserStorageKey(), JSON.stringify(sessions));
     return s.bookmarked;
   }
   return false;
