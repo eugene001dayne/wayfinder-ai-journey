@@ -6,9 +6,7 @@ import { Compass, ArrowLeft, Copy, Check, Star, Share2, Bookmark, BookmarkCheck,
 import { rateSession, startSession, getUserId, type WorkflowResult as WorkflowResultType } from "@/lib/api";
 import { saveSession, toggleBookmark, getSessionBySessionId } from "@/lib/storage";
 
-/* ── sub-components ── */
-
-const ToolCard = ({ tool }: { tool: WorkflowResultType["recommended_tools"] extends (infer T)[] | undefined ? T : never }) => {
+const ToolCard = ({ tool }: { tool: any }) => {
   const t = tool as { name: string; why: string; url?: string; link?: string; pricing?: string; free_alternative?: string };
   return (
     <div className="p-4 rounded-xl bg-card border border-border/50 flex items-start justify-between gap-4">
@@ -20,15 +18,15 @@ const ToolCard = ({ tool }: { tool: WorkflowResultType["recommended_tools"] exte
         <p className="text-xs text-muted-foreground">{t.why}</p>
       </div>
       <div className="flex flex-col items-end gap-2">
-  {(t.url || t.link) && (
-    <a href={t.url || t.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
-      <ExternalLink className="h-4 w-4" />
-    </a>
-  )}
-  {t.free_alternative && (
-    <p className="text-xs text-muted-foreground text-right">Free alt: {t.free_alternative}</p>
-  )}
-</div>
+        {(t.url || t.link) && (
+          <a href={t.url || t.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        )}
+        {t.free_alternative && (
+          <p className="text-xs text-muted-foreground text-right">Free alt: {t.free_alternative}</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -65,8 +63,6 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
             <span className="text-foreground/70 font-medium">Expected output:</span> {step.expected_output}
           </p>
         )}
-
-        {/* Validation checkpoint */}
         {step.validation && (
           <div className="mt-3 rounded-lg bg-primary/5 border border-primary/20 p-3">
             <p className="text-xs font-medium text-primary mb-1">✓ Checkpoint</p>
@@ -75,8 +71,6 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
             <p className="text-xs text-muted-foreground">❌ No: {step.validation.if_no}</p>
           </div>
         )}
-
-        {/* Fallback */}
         {step.fallback && (
           <div className="mt-3 rounded-lg bg-muted/30 border border-border/30 p-3">
             <p className="text-xs font-medium text-muted-foreground mb-1">🔄 If you get stuck</p>
@@ -93,17 +87,47 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
   </div>
 );
 
-/* ── main page ── */
-
 const WorkflowResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const locState = location.state as { result?: WorkflowResultType; sessionId?: string } | null;
 
-  const result = locState?.result;
-  const wf = result?.workflow || result;
-  const sessionId = locState?.sessionId || result?.session_id || "";
+  const [result, setResult] = useState<WorkflowResultType | null>(locState?.result || null);
+  const [loadingWorkflow, setLoadingWorkflow] = useState(!locState?.result);
+  const sessionId = locState?.sessionId || (locState?.result as any)?.session_id || "";
 
+  // If no result in state — fetch from API (cross-device support)
+  useEffect(() => {
+    if (result) return;
+
+    // Try localStorage first
+    if (sessionId) {
+      const saved = getSessionBySessionId(sessionId);
+      if (saved?.workflow) {
+        setResult(saved.workflow as any);
+        setLoadingWorkflow(false);
+        return;
+      }
+    }
+
+    // Try fetching from API by session_id
+    if (sessionId) {
+      fetch(`https://wayfinder-backend-au9t.onrender.com/workflows?user_id=${getUserId()}`)
+        .then(r => r.json())
+        .then((workflows: any[]) => {
+          const match = workflows.find((w: any) => w.session_id === sessionId);
+          if (match?.workflow_data) {
+            setResult(match.workflow_data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingWorkflow(false));
+    } else {
+      setLoadingWorkflow(false);
+    }
+  }, [sessionId]);
+
+  const wf = (result as any)?.workflow || result;
   const title = wf?.title || "Workflow";
   const overview = wf?.overview || "";
   const tools = wf?.recommended_tools || [];
@@ -116,13 +140,10 @@ const WorkflowResultPage = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-
-  // Chat / tweak
   const [tweakInput, setTweakInput] = useState("");
   const [tweakLoading, setTweakLoading] = useState(false);
   const [tweakNotes, setTweakNotes] = useState<string[]>([]);
 
-  // Save to localStorage on mount
   useEffect(() => {
     if (result && sessionId) {
       const saved = getSessionBySessionId(sessionId);
@@ -186,14 +207,18 @@ const WorkflowResultPage = () => {
     navigate("/dashboard", { state: { prefillQuery: originalQuery } });
   };
 
-  if (!result) {
-    // Try loading from localStorage
-    const saved = sessionId ? getSessionBySessionId(sessionId) : undefined;
-    if (saved?.workflow) {
-      // Re-render with saved data by navigating with state
-      navigate("/workflow", { state: { result: saved.workflow, sessionId: saved.sessionId }, replace: true });
-      return null;
-    }
+  if (loadingWorkflow) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 mx-auto mb-4 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading your workflow...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result || !wf) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -225,7 +250,6 @@ const WorkflowResultPage = () => {
       </header>
 
       <div className="max-w-3xl mx-auto p-6 lg:p-10">
-        {/* Title */}
         <div className="mb-10">
           <div className="inline-flex items-center gap-2 text-xs text-primary mb-3">
             <Zap className="h-3 w-3" /> Workflow
@@ -234,39 +258,35 @@ const WorkflowResultPage = () => {
           {overview && <p className="text-muted-foreground">{overview}</p>}
         </div>
 
-        {/* Recommended Tools */}
         {tools.length > 0 && (
           <section className="mb-12">
             <h2 className="text-lg font-semibold mb-4">Recommended Tools</h2>
             <div className="grid gap-3">
-              {tools.map((tool) => <ToolCard key={tool.name} tool={tool} />)}
+              {tools.map((tool: any) => <ToolCard key={tool.name} tool={tool} />)}
             </div>
           </section>
         )}
 
-        {/* Steps */}
         {steps.length > 0 && (
           <section className="mb-12">
             <h2 className="text-lg font-semibold mb-6">Step by Step</h2>
             <div className="space-y-6">
-              {steps.map((step, idx) => <StepCard key={idx} step={step} idx={idx} copiedIdx={copiedIdx} onCopy={copyPrompt} />)}
+              {steps.map((step: any, idx: number) => <StepCard key={idx} step={step} idx={idx} copiedIdx={copiedIdx} onCopy={copyPrompt} />)}
             </div>
           </section>
         )}
 
-        {/* Pro tips */}
         {proTips.length > 0 && (
           <section className="mb-12">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-primary" /> Pro Tips
             </h2>
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-5 space-y-3">
-              {proTips.map((tip, i) => <p key={i} className="text-sm text-foreground/80">• {tip}</p>)}
+              {proTips.map((tip: string, i: number) => <p key={i} className="text-sm text-foreground/80">• {tip}</p>)}
             </div>
           </section>
         )}
 
-        {/* Next Level */}
         {nextLevel && (
           <section className="mb-12">
             <h2 className="text-lg font-semibold mb-4">Next Level</h2>
@@ -276,7 +296,6 @@ const WorkflowResultPage = () => {
           </section>
         )}
 
-        {/* Tweak / Chat */}
         <section className="mb-8">
           <h3 className="text-sm font-medium mb-3">Want to adjust this plan?</h3>
           <div className="flex gap-2">
@@ -300,7 +319,6 @@ const WorkflowResultPage = () => {
           )}
         </section>
 
-        {/* Rating */}
         <section className="mb-8 text-center">
           <h3 className="text-sm font-medium mb-3">How useful was this workflow?</h3>
           <div className="flex justify-center gap-1 mb-4">

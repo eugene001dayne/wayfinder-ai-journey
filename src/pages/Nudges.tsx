@@ -16,19 +16,53 @@ const Nudges = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const userId = getUserId();
 
   useEffect(() => {
     if (!userId) { navigate("/onboarding"); return; }
-    getUser(userId).then(setUser).catch(() => {}).finally(() => setLoading(false));
+    getUser(userId).then((u) => {
+      setUser(u);
+      // Pre-populate dismissed from seen nudges
+      const seenIds = new Set<string>(
+        (u?.nudges || [])
+          .filter((n: any) => n.seen)
+          .map((n: any) => n.id || n.message)
+      );
+      setDismissed(seenIds);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [userId, navigate]);
 
-  const nudges = user?.nudges || [];
+  const nudges = (user?.nudges || []) as any[];
 
-  const dismiss = (idx: number) => {
-    setDismissed((prev) => new Set(prev).add(idx));
+  const dismiss = async (nudge: any) => {
+    const nudgeKey = nudge.id || nudge.message;
+    
+    // Optimistic UI update
+    setDismissed((prev) => new Set(prev).add(nudgeKey));
+
+    // Persist to backend
+    if (userId && nudge.id) {
+      try {
+        await fetch(
+          `https://wayfinder-backend-au9t.onrender.com/users/${userId}/nudges/${nudge.id}/dismiss`,
+          { method: 'PUT', headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (err) {
+        console.error('Failed to persist nudge dismiss:', err);
+      }
+    }
   };
+
+  const handleTryIt = (nudge: any) => {
+    // Navigate to dashboard with nudge action as prefill
+    const action = nudge.action_prompt || nudge.message || "";
+    navigate("/dashboard", { state: { prefillQuery: action } });
+  };
+
+  // Only show non-dismissed nudges (or all with dismissed ones greyed)
+  const visibleNudges = nudges.filter((n: any) => !dismissed.has(n.id || n.message));
+  const dismissedNudges = nudges.filter((n: any) => dismissed.has(n.id || n.message));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -74,34 +108,57 @@ const Nudges = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {nudges.map((nudge, i) => {
-                  const isDismissed = dismissed.has(i);
-                  return (
-                    <div key={i} className={`rounded-xl bg-card border p-5 transition-all ${isDismissed ? "border-border/30 opacity-50" : "border-primary/20 hover:border-primary/40"}`}>
-                      <div className="flex items-start gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <Zap className="h-5 w-5 text-primary" />
+                {/* Active nudges */}
+                {visibleNudges.map((nudge: any, i: number) => (
+                  <div key={nudge.id || i} className="rounded-xl bg-card border border-primary/20 hover:border-primary/40 p-5 transition-all">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Zap className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {nudge.nudge_type && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                              {nudge.nudge_type}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                           {nudge.nudge_type && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{nudge.nudge_type}</span>}
-                           </div>
-                           <p className="text-sm text-muted-foreground">{nudge.message}</p>
-                          <div className="flex items-center gap-3 mt-3">
-                            {!isDismissed ? (
-                              <>
-                                <button className="text-xs text-primary hover:underline flex items-center gap-1">Try it now <ArrowRight className="h-3 w-3" /></button>
-                                <button onClick={() => dismiss(i)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"><Check className="h-3 w-3" /> Dismiss</button>
-                              </>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Dismissed</span>
-                            )}
-                          </div>
+                        <p className="text-sm text-muted-foreground">{nudge.message}</p>
+                        <div className="flex items-center gap-3 mt-3">
+                          <button
+                            onClick={() => handleTryIt(nudge)}
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            Try it now <ArrowRight className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => dismiss(nudge)}
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                          >
+                            <Check className="h-3 w-3" /> Dismiss
+                          </button>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
+
+                {/* Dismissed nudges — collapsed at bottom */}
+                {dismissedNudges.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-xs text-muted-foreground mb-3">Dismissed ({dismissedNudges.length})</p>
+                    {dismissedNudges.map((nudge: any, i: number) => (
+                      <div key={nudge.id || i} className="rounded-xl bg-card border border-border/30 opacity-40 p-4 mb-2">
+                        <div className="flex items-start gap-4">
+                          <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Zap className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">{nudge.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
