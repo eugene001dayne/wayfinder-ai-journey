@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Compass, Home, Workflow, Brain, Bell, User, CheckCircle2, Clock, ArrowRight, FileX, Bookmark } from "lucide-react";
+import { Compass, Home, Workflow, Brain, Bell, User, CheckCircle2, ArrowRight, FileX, Bookmark } from "lucide-react";
 import { getUserId, getUser, getUserSessions, type UserProfile, type Session } from "@/lib/api";
 import { getSavedSessions, type SavedSession } from "@/lib/storage";
 
@@ -29,10 +29,9 @@ const MyWorkflows = () => {
     Promise.allSettled([
       getUser(userId),
       getUserSessions(userId),
-      // Fetch workflows directly from workflows table
       fetch(`https://wayfinder-backend-au9t.onrender.com/workflows?user_id=${userId}`)
-        .then(r => r.ok ? r.json() : { workflows: [] })
-        .catch(() => ({ workflows: [] }))
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => [])
     ]).then(([uRes, sRes, wRes]) => {
       if (uRes.status === "fulfilled") setUser(uRes.value);
       if (sRes.status === "fulfilled") setSessions(Array.isArray(sRes.value) ? sRes.value : []);
@@ -46,37 +45,50 @@ const MyWorkflows = () => {
 
   const merged = (() => {
     const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
+
+    // Build a map of session_id → workflow from the API workflows table
     const apiWorkflowMap = new Map(apiWorkflows.map((w) => [w.session_id, w]));
 
-    const apiCards = sessions.map((s) => {
-      const id = s.id || s.session_id || "";
-      const local = localMap.get(id);
-      const apiWorkflow = apiWorkflowMap.get(id);
-      return {
-        id,
-        title: s.title || local?.title || apiWorkflow?.title || null,
-        date: s.date || local?.date || "",
-        status: s.status || "Completed",
-        bookmarked: local?.bookmarked || false,
-        hasWorkflow: !!local?.workflow || !!apiWorkflow,
-        workflowData: local?.workflow || apiWorkflow?.workflow_data || null,
-      };
-    });
+    // Sessions from API already have proper titles (backend now merges them)
+    // Only include sessions that have a real workflow (has_workflow: true) OR a local workflow
+    const apiCards = sessions
+      .filter((s) => {
+        const id = s.id || s.session_id || "";
+        const hasApiWorkflow = apiWorkflowMap.has(id);
+        const hasLocalWorkflow = localMap.get(id)?.workflow != null;
+        const hasTitle = s.title && s.title !== "Untitled";
+        return hasTitle && (hasApiWorkflow || hasLocalWorkflow || (s as any).has_workflow);
+      })
+      .map((s) => {
+        const id = s.id || s.session_id || "";
+        const local = localMap.get(id);
+        const apiWorkflow = apiWorkflowMap.get(id);
+        return {
+          id,
+          title: s.title || local?.title || apiWorkflow?.title || "Untitled",
+          date: s.date || local?.date || "",
+          status: "Completed",
+          bookmarked: local?.bookmarked || false,
+          workflowData: local?.workflow || apiWorkflow?.workflow_data || null,
+        };
+      });
 
     const apiIds = new Set(apiCards.map((c) => c.id));
+
+    // Local-only sessions that have actual workflow data
     const localOnly = localSessions
-      .filter((s) => !apiIds.has(s.sessionId))
+      .filter((s) => !apiIds.has(s.sessionId) && s.workflow && s.title && s.title !== "Untitled")
       .map((s) => ({
         id: s.sessionId,
         title: s.title,
         date: s.date,
-        status: s.status,
+        status: "Completed",
         bookmarked: s.bookmarked || false,
-        hasWorkflow: !!s.workflow,
         workflowData: s.workflow || null,
       }));
 
-    const all = [...localOnly, ...apiCards].filter((s) => s.title !== null);
+    const all = [...apiCards, ...localOnly];
+    // Bookmarked first
     return all.sort((a, b) => (a.bookmarked === b.bookmarked ? 0 : a.bookmarked ? -1 : 1));
   })();
 
@@ -84,7 +96,6 @@ const MyWorkflows = () => {
     if (workflowData) {
       navigate("/workflow", { state: { result: workflowData, sessionId: id } });
     } else {
-      // Last resort — navigate and let WorkflowResult fetch it
       navigate("/workflow", { state: { sessionId: id } });
     }
   };
@@ -135,7 +146,7 @@ const MyWorkflows = () => {
             <h1 className="text-2xl lg:text-3xl font-bold mb-2">My Workflows</h1>
             <p className="text-muted-foreground mb-8">All your mapped paths in one place.</p>
 
-            {loading && localSessions.length === 0 ? (
+            {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <Skeleton key={i} className="h-20 w-full rounded-xl" />
@@ -163,11 +174,7 @@ const MyWorkflows = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        {wf.status === "Completed" ? (
-                          <CheckCircle2 className="h-5 w-5 text-primary" />
-                        ) : (
-                          <Clock className="h-5 w-5 text-muted-foreground" />
-                        )}
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -178,16 +185,8 @@ const MyWorkflows = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full ${
-                          wf.status === "Completed"
-                            ? "bg-primary/10 text-primary"
-                            : wf.status === "In Progress"
-                            ? "bg-accent/10 text-accent"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {wf.status}
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                        Completed
                       </span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
