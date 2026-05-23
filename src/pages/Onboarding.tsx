@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Compass, Briefcase, Users, Store, GraduationCap, Sparkles, ArrowRight, Check, Loader2 } from "lucide-react";
-import { createUser, setUserId, getUserId } from "@/lib/api";
+import { createUser, setUserId, getUserId, getUser } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const roles = [
@@ -31,6 +31,7 @@ const Onboarding = () => {
   const locationState = location.state as { email?: string; userId?: string } | null;
   const authEmail = locationState?.email || "";
 
+  const [checking, setChecking] = useState(true); // check if already onboarded
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
@@ -38,6 +39,29 @@ const Onboarding = () => {
   const [tools, setTools] = useState<string[]>([]);
   const [goal, setGoal] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Re-onboarding bug fix ──
+  // If a userId already exists in localStorage, check the API.
+  // If they're already onboarded, skip onboarding entirely.
+  useEffect(() => {
+    const existingUserId = getUserId();
+    if (!existingUserId) {
+      setChecking(false);
+      return;
+    }
+    getUser(existingUserId)
+      .then((user) => {
+        if (user?.onboarded) {
+          navigate("/dashboard", { replace: true });
+        } else {
+          setChecking(false);
+        }
+      })
+      .catch(() => {
+        // If API fails, allow onboarding to proceed
+        setChecking(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalSteps = 3;
   const progress = step <= totalSteps ? (step / (totalSteps + 1)) * 100 : 100;
@@ -59,7 +83,14 @@ const Onboarding = () => {
     } else if (step === totalSteps) {
       setSubmitting(true);
       try {
-        const user = await createUser({ full_name: name, email: authEmail, role, industry, tools_they_use: tools, goals: goal });
+        const user = await createUser({
+          full_name: name,
+          email: authEmail,
+          role,
+          industry,
+          tools_they_use: tools,
+          goals: goal,
+        });
         setUserId(user.id);
         setStep(4);
       } catch {
@@ -71,6 +102,15 @@ const Onboarding = () => {
       navigate("/dashboard");
     }
   };
+
+  // Show nothing while checking — avoids flash of onboarding for returning users
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Compass className="h-8 w-8 text-primary animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
