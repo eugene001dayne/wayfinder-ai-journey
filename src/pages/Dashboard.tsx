@@ -43,7 +43,6 @@ const Dashboard = () => {
             if (data.user) {
               const previousUserId = localStorage.getItem('wayfinder_user_id');
               if (previousUserId && previousUserId !== data.user.id) {
-                // Different user logging in — clear old user's cached sessions
                 localStorage.removeItem(`wayfinder_sessions_${previousUserId}`);
               }
               localStorage.setItem('wayfinder_user_id', data.user.id);
@@ -68,6 +67,11 @@ const Dashboard = () => {
     setLocalSessions(getSavedSessions());
     loadDashboard(userId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep query in sync if navigated here with prefill state
+  useEffect(() => {
+    if (prefill) setQuery(prefill);
+  }, [prefill]);
 
   const loadDashboard = (uid: string) => {
     setLocalSessions(getSavedSessions());
@@ -95,19 +99,26 @@ const Dashboard = () => {
     }
   };
 
+  // Sessions now come from the API already merged with workflow titles (backend fixed)
+  // API returns: { id, title, date, status, has_workflow }
+  // We still check localStorage for bookmarks and local-only sessions
   const mergedSessions = (() => {
     const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
+
+    // API sessions already have proper titles from the fixed backend
     const apiCards = sessions
-      .filter((s) => s.title && s.title !== "Untitled" && s.status === "completed")
+      .filter((s) => s.title && s.title !== "Untitled")
       .map((s) => ({
         id: s.id || s.session_id || "",
         title: s.title!,
         date: s.date || "",
         status: s.status || "completed",
-        hasLocal: localMap.has(s.id || s.session_id || ""),
         bookmarked: localMap.get(s.id || s.session_id || "")?.bookmarked || false,
       }));
+
     const apiIds = new Set(apiCards.map((c) => c.id));
+
+    // Local-only sessions (created this device, not yet in API response)
     const localOnly = localSessions
       .filter((s) => !apiIds.has(s.sessionId) && s.title && s.title !== "Untitled")
       .map((s) => ({
@@ -115,16 +126,16 @@ const Dashboard = () => {
         title: s.title,
         date: s.date,
         status: s.status,
-        hasLocal: true,
         bookmarked: s.bookmarked || false,
       }));
-    return [...localOnly, ...apiCards];
+
+    return [...apiCards, ...localOnly];
   })();
 
   const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
-  const latestNudge = user?.nudges?.[0] as { message?: string; text?: string; nudge_type?: string } | undefined;
+  const latestNudge = user?.nudges?.[0] as { id?: string; message?: string; text?: string; nudge_type?: string; action_prompt?: string } | undefined;
 
   const openWorkflow = (id: string) => {
     const local = localSessions.find((s) => s.sessionId === id);
@@ -133,6 +144,13 @@ const Dashboard = () => {
     } else {
       navigate("/workflow", { state: { sessionId: id } });
     }
+  };
+
+  // Try It — uses the nudge's action_prompt if available, else the nudge message
+  const handleTryIt = (nudge: typeof latestNudge) => {
+    if (!nudge) return;
+    const action = nudge.action_prompt || nudge.message || "";
+    navigate("/dashboard", { state: { prefillQuery: action } });
   };
 
   if (submitting) return <PathLoader />;
@@ -210,7 +228,7 @@ const Dashboard = () => {
                       <button key={session.id} onClick={() => openWorkflow(session.id)} className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group text-left">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            {session.status === "completed" ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
@@ -220,11 +238,9 @@ const Dashboard = () => {
                             <p className="text-xs text-muted-foreground">{session.date}</p>
                           </div>
                         </div>
-                        <span className={`text-xs px-2.5 py-1 rounded-full ${
-                          session.status === "completed" ? "bg-primary/10 text-primary"
-                          : session.status === "In Progress" ? "bg-accent/10 text-accent"
-                          : "bg-muted text-muted-foreground"
-                        }`}>{session.status}</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                          completed
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -263,8 +279,13 @@ const Dashboard = () => {
                   </div>
                   {latestNudge ? (
                     <>
-                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.message || (latestNudge as any).text}</p>
-                      <button className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {latestNudge.message || (latestNudge as any).text}
+                      </p>
+                      <button
+                        onClick={() => handleTryIt(latestNudge)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
                         Try it now <ArrowRight className="h-3 w-3" />
                       </button>
                     </>
