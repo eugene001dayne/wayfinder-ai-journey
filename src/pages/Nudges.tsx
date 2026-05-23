@@ -23,11 +23,11 @@ const Nudges = () => {
     if (!userId) { navigate("/onboarding"); return; }
     getUser(userId).then((u) => {
       setUser(u);
-      // Pre-populate dismissed from seen nudges
+      // Pre-populate dismissed set from nudges already marked seen
       const seenIds = new Set<string>(
         (u?.nudges || [])
           .filter((n: any) => n.seen)
-          .map((n: any) => n.id || n.message)
+          .map((n: any) => String(n.id || n.message))
       );
       setDismissed(seenIds);
     }).catch(() => {}).finally(() => setLoading(false));
@@ -36,12 +36,12 @@ const Nudges = () => {
   const nudges = (user?.nudges || []) as any[];
 
   const dismiss = async (nudge: any) => {
-    const nudgeKey = nudge.id || nudge.message;
-    
-    // Optimistic UI update
+    const nudgeKey = String(nudge.id || nudge.message);
+
+    // Optimistic UI update immediately
     setDismissed((prev) => new Set(prev).add(nudgeKey));
 
-    // Persist to backend
+    // Persist to backend (only if we have a real id)
     if (userId && nudge.id) {
       try {
         await fetch(
@@ -50,19 +50,20 @@ const Nudges = () => {
         );
       } catch (err) {
         console.error('Failed to persist nudge dismiss:', err);
+        // Don't revert — UX is better keeping it dismissed locally
       }
     }
   };
 
   const handleTryIt = (nudge: any) => {
-    // Navigate to dashboard with nudge action as prefill
+    // Use action_prompt if available (the specific workflow query to submit)
+    // Fall back to the nudge message itself
     const action = nudge.action_prompt || nudge.message || "";
     navigate("/dashboard", { state: { prefillQuery: action } });
   };
 
-  // Only show non-dismissed nudges (or all with dismissed ones greyed)
-  const visibleNudges = nudges.filter((n: any) => !dismissed.has(n.id || n.message));
-  const dismissedNudges = nudges.filter((n: any) => dismissed.has(n.id || n.message));
+  const visibleNudges = nudges.filter((n: any) => !dismissed.has(String(n.id || n.message)));
+  const dismissedNudges = nudges.filter((n: any) => dismissed.has(String(n.id || n.message)));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -109,6 +110,13 @@ const Nudges = () => {
             ) : (
               <div className="space-y-3">
                 {/* Active nudges */}
+                {visibleNudges.length === 0 && dismissedNudges.length > 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Check className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">All caught up! More nudges will appear after your next sessions.</p>
+                  </div>
+                )}
+
                 {visibleNudges.map((nudge: any, i: number) => (
                   <div key={nudge.id || i} className="rounded-xl bg-card border border-primary/20 hover:border-primary/40 p-5 transition-all">
                     <div className="flex items-start gap-4">
@@ -116,14 +124,12 @@ const Nudges = () => {
                         <Zap className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {nudge.nudge_type && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                              {nudge.nudge_type}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{nudge.message}</p>
+                        {nudge.nudge_type && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium mb-2 inline-block">
+                            {nudge.nudge_type.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        <p className="text-sm text-foreground/80 mt-1">{nudge.message}</p>
                         <div className="flex items-center gap-3 mt-3">
                           <button
                             onClick={() => handleTryIt(nudge)}
