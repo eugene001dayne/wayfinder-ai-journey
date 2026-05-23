@@ -7,7 +7,7 @@ import { rateSession, startSession, getUserId, type WorkflowResult as WorkflowRe
 import { saveSession, toggleBookmark, getSessionBySessionId } from "@/lib/storage";
 
 const ToolCard = ({ tool }: { tool: any }) => {
-  const t = tool as { name: string; why: string; url?: string; link?: string; pricing?: string; free_alternative?: string };
+  const t = typeof tool === "string" ? { name: tool } : tool;
   return (
     <div className="p-4 rounded-xl bg-card border border-border/50 flex items-start justify-between gap-4">
       <div className="flex-1">
@@ -15,7 +15,7 @@ const ToolCard = ({ tool }: { tool: any }) => {
           <h3 className="text-sm font-semibold">{t.name}</h3>
           {t.pricing && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">{t.pricing}</span>}
         </div>
-        <p className="text-xs text-muted-foreground">{t.why}</p>
+        {t.why && <p className="text-xs text-muted-foreground">{t.why}</p>}
       </div>
       <div className="flex flex-col items-end gap-2">
         {(t.url || t.link) && (
@@ -23,9 +23,7 @@ const ToolCard = ({ tool }: { tool: any }) => {
             <ExternalLink className="h-4 w-4" />
           </a>
         )}
-        {t.free_alternative && (
-          <p className="text-xs text-muted-foreground text-right">Free alt: {t.free_alternative}</p>
-        )}
+        {t.free_alternative && <p className="text-xs text-muted-foreground text-right">Free alt: {t.free_alternative}</p>}
       </div>
     </div>
   );
@@ -46,10 +44,8 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
             </div>
           )}
         </div>
-        {step.title && step.what_to_do && (
-          <p className="text-sm text-foreground/80 mb-2">{step.what_to_do}</p>
-        )}
-        <p className="text-xs text-primary mb-3">Using {step.tool}</p>
+        {step.title && step.what_to_do && <p className="text-sm text-foreground/80 mb-2">{step.what_to_do}</p>}
+        {step.tool && <p className="text-xs text-primary mb-3">Using {step.tool}</p>}
         {step.prompt_to_use && (
           <div className="relative rounded-lg bg-muted/50 border border-border/50 p-4 mb-3">
             <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono">{step.prompt_to_use}</pre>
@@ -74,18 +70,35 @@ const StepCard = ({ step, idx, copiedIdx, onCopy }: { step: any; idx: number; co
         {step.fallback && (
           <div className="mt-3 rounded-lg bg-muted/30 border border-border/30 p-3">
             <p className="text-xs font-medium text-muted-foreground mb-1">🔄 If you get stuck</p>
-            {step.fallback.if_tool_unavailable && (
-              <p className="text-xs text-muted-foreground">No access to tool: {step.fallback.if_tool_unavailable}</p>
-            )}
-            {step.fallback.if_stuck && (
-              <p className="text-xs text-muted-foreground">Simpler option: {step.fallback.if_stuck}</p>
-            )}
+            {step.fallback.if_tool_unavailable && <p className="text-xs text-muted-foreground">No tool access: {step.fallback.if_tool_unavailable}</p>}
+            {step.fallback.if_stuck && <p className="text-xs text-muted-foreground">Simpler option: {step.fallback.if_stuck}</p>}
           </div>
         )}
       </div>
     </div>
   </div>
 );
+
+// Reconstruct full workflow object from the split DB columns
+// DB stores: title, context_gathered (jsonb), steps (jsonb), prompts_generated (jsonb), recommended_tools (array)
+function reconstructFromDB(dbRow: any): any {
+  if (!dbRow) return null;
+  const ctx = dbRow.context_gathered || {};
+  return {
+    title: dbRow.title,
+    overview: ctx.overview || "",
+    constraints_addressed: ctx.constraints_addressed || [],
+    pro_tips: ctx.pro_tips || [],
+    total_time_estimate: ctx.total_time_estimate || "",
+    next_level: ctx.next_level || "",
+    escalation_path: ctx.escalation_path || "",
+    recommended_tools: (dbRow.recommended_tools || []).map((t: any) =>
+      typeof t === "string" ? { name: t } : t
+    ),
+    steps: dbRow.steps || [],
+    prompts_generated: dbRow.prompts_generated || {},
+  };
+}
 
 const WorkflowResultPage = () => {
   const location = useLocation();
@@ -96,7 +109,6 @@ const WorkflowResultPage = () => {
   const [loadingWorkflow, setLoadingWorkflow] = useState(!locState?.result);
   const sessionId = locState?.sessionId || (locState?.result as any)?.session_id || "";
 
-  // If no result in state — fetch from API (cross-device support)
   useEffect(() => {
     if (result) return;
 
@@ -110,14 +122,17 @@ const WorkflowResultPage = () => {
       }
     }
 
-    // Try fetching from API by session_id
-    if (sessionId) {
-      fetch(`https://wayfinder-backend-au9t.onrender.com/workflows?user_id=${getUserId()}`)
+    // Fetch from API — workflows table has split columns, not workflow_data
+    const userId = getUserId();
+    if (sessionId && userId) {
+      fetch(`https://wayfinder-backend-au9t.onrender.com/workflows?user_id=${userId}`)
         .then(r => r.json())
         .then((workflows: any[]) => {
-          const match = workflows.find((w: any) => w.session_id === sessionId);
-          if (match?.workflow_data) {
-            setResult(match.workflow_data);
+          const rows = Array.isArray(workflows) ? workflows : (workflows as any).workflows || [];
+          const match = rows.find((w: any) => w.session_id === sessionId);
+          if (match) {
+            // Reconstruct from split columns
+            setResult(reconstructFromDB(match) as any);
           }
         })
         .catch(() => {})
@@ -125,7 +140,7 @@ const WorkflowResultPage = () => {
     } else {
       setLoadingWorkflow(false);
     }
-  }, [sessionId]);
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const wf = (result as any)?.workflow || result;
   const title = wf?.title || "Workflow";
@@ -202,9 +217,7 @@ const WorkflowResultPage = () => {
   };
 
   const handleRegenerate = () => {
-    const saved = getSessionBySessionId(sessionId);
-    const originalQuery = saved?.query || title;
-    navigate("/dashboard", { state: { prefillQuery: originalQuery } });
+    navigate("/dashboard", { state: { prefillQuery: title } });
   };
 
   if (loadingWorkflow) {
@@ -262,7 +275,7 @@ const WorkflowResultPage = () => {
           <section className="mb-12">
             <h2 className="text-lg font-semibold mb-4">Recommended Tools</h2>
             <div className="grid gap-3">
-              {tools.map((tool: any) => <ToolCard key={tool.name} tool={tool} />)}
+              {tools.map((tool: any, i: number) => <ToolCard key={i} tool={tool} />)}
             </div>
           </section>
         )}
