@@ -12,6 +12,17 @@ const navItems = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
+// Parse nudge message — backend stores "message|||action_prompt" in the message field
+// because nudges table has no action_prompt column
+function parseNudge(nudge: any) {
+  if (nudge.action_prompt) return nudge; // already parsed by backend
+  if (nudge.message && nudge.message.includes('|||')) {
+    const [message, action_prompt] = nudge.message.split('|||');
+    return { ...nudge, message: message.trim(), action_prompt: action_prompt.trim() };
+  }
+  return { ...nudge, action_prompt: null };
+}
+
 const Nudges = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -21,27 +32,19 @@ const Nudges = () => {
 
   useEffect(() => {
     if (!userId) { navigate("/onboarding"); return; }
-    getUser(userId).then((u) => {
-      setUser(u);
-      // Pre-populate dismissed set from nudges already marked seen
-      const seenIds = new Set<string>(
-        (u?.nudges || [])
-          .filter((n: any) => n.seen)
-          .map((n: any) => String(n.id || n.message))
-      );
-      setDismissed(seenIds);
-    }).catch(() => {}).finally(() => setLoading(false));
+    getUser(userId)
+      .then((u) => setUser(u))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [userId, navigate]);
 
-  const nudges = (user?.nudges || []) as any[];
+  const rawNudges = (user?.nudges || []) as any[];
+  const nudges = rawNudges.map(parseNudge);
 
   const dismiss = async (nudge: any) => {
-    const nudgeKey = String(nudge.id || nudge.message);
+    const key = String(nudge.id || nudge.message);
+    setDismissed((prev) => new Set(prev).add(key));
 
-    // Optimistic UI update immediately
-    setDismissed((prev) => new Set(prev).add(nudgeKey));
-
-    // Persist to backend (only if we have a real id)
     if (userId && nudge.id) {
       try {
         await fetch(
@@ -50,14 +53,11 @@ const Nudges = () => {
         );
       } catch (err) {
         console.error('Failed to persist nudge dismiss:', err);
-        // Don't revert — UX is better keeping it dismissed locally
       }
     }
   };
 
   const handleTryIt = (nudge: any) => {
-    // Use action_prompt if available (the specific workflow query to submit)
-    // Fall back to the nudge message itself
     const action = nudge.action_prompt || nudge.message || "";
     navigate("/dashboard", { state: { prefillQuery: action } });
   };
@@ -100,20 +100,19 @@ const Nudges = () => {
             <p className="text-muted-foreground mb-8">Personalized suggestions to level up your AI skills.</p>
 
             {loading ? (
-              <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
+              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
             ) : nudges.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Bell className="h-10 w-10 mx-auto mb-4 opacity-50" />
                 <p className="text-sm mb-1">No nudges yet.</p>
-                <p className="text-xs">Complete some sessions and we'll generate personalized tips for you.</p>
+                <p className="text-xs">Complete 3+ sessions and we'll generate personalized tips for you.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Active nudges */}
                 {visibleNudges.length === 0 && dismissedNudges.length > 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Check className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">All caught up! More nudges will appear after your next sessions.</p>
+                    <p className="text-sm">All caught up! More nudges after your next sessions.</p>
                   </div>
                 )}
 
@@ -131,16 +130,10 @@ const Nudges = () => {
                         )}
                         <p className="text-sm text-foreground/80 mt-1">{nudge.message}</p>
                         <div className="flex items-center gap-3 mt-3">
-                          <button
-                            onClick={() => handleTryIt(nudge)}
-                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                          >
+                          <button onClick={() => handleTryIt(nudge)} className="text-xs text-primary hover:underline flex items-center gap-1">
                             Try it now <ArrowRight className="h-3 w-3" />
                           </button>
-                          <button
-                            onClick={() => dismiss(nudge)}
-                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                          >
+                          <button onClick={() => dismiss(nudge)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                             <Check className="h-3 w-3" /> Dismiss
                           </button>
                         </div>
@@ -149,7 +142,6 @@ const Nudges = () => {
                   </div>
                 ))}
 
-                {/* Dismissed nudges — collapsed at bottom */}
                 {dismissedNudges.length > 0 && (
                   <div className="mt-6">
                     <p className="text-xs text-muted-foreground mb-3">Dismissed ({dismissedNudges.length})</p>
