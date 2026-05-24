@@ -33,7 +33,7 @@ const Dashboard = () => {
     if (hash && hash.includes('access_token')) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
-      const email = localStorage.getItem('pending_email');
+      const email = localStorage.getItem('wayfinder_pending_email');
 
       if (accessToken && email) {
         window.history.replaceState(null, '', window.location.pathname);
@@ -46,14 +46,14 @@ const Dashboard = () => {
                 localStorage.removeItem(`wayfinder_sessions_${previousUserId}`);
               }
               localStorage.setItem('wayfinder_user_id', data.user.id);
-              localStorage.removeItem('pending_email');
+              localStorage.removeItem('wayfinder_pending_email');
               if (data.user.onboarded) {
                 loadDashboard(data.user.id);
               } else {
                 navigate('/onboarding');
               }
             } else {
-              localStorage.removeItem('pending_email');
+              localStorage.removeItem('wayfinder_pending_email');
               navigate('/onboarding');
             }
           })
