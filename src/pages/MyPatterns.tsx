@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Compass, Home, Workflow, Brain, Bell, User, Lightbulb } from "lucide-react";
+import { Compass, Home, Workflow, Brain, Bell, User, Lightbulb, ArrowRight } from "lucide-react";
 import { getUserId, getUser, type UserProfile } from "@/lib/api";
 
 const navItems = [
@@ -11,6 +11,12 @@ const navItems = [
   { icon: Bell, label: "Nudges", path: "/nudges" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
+
+const patternTypeLabel: Record<string, string> = {
+  repeated_task: "Repeated Task",
+  ai_gap: "AI Gap",
+  manual_habit: "Manual Habit",
+};
 
 const MyPatterns = () => {
   const navigate = useNavigate();
@@ -24,6 +30,12 @@ const MyPatterns = () => {
   }, [userId, navigate]);
 
   const patterns = user?.patterns || [];
+
+  // Navigate to dashboard with the pattern's suggested fix as the prefill query
+  const handleBuildWorkflow = (pattern: any) => {
+    const query = pattern.suggested_fix || pattern.description || "";
+    navigate("/dashboard", { state: { prefillQuery: query } });
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -57,29 +69,51 @@ const MyPatterns = () => {
         <div className="flex-1 p-6 lg:p-10">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-2xl lg:text-3xl font-bold mb-2">My Patterns</h1>
-            <p className="text-muted-foreground mb-8">AI-detected habits and behaviors from your sessions.</p>
+            <p className="text-muted-foreground mb-8">
+              AI-detected habits from your sessions. Each pattern is an opportunity — act on it to level up.
+            </p>
 
             {loading ? (
-              <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-36 w-full rounded-xl" />)}</div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {[1,2,3,4].map(i => <Skeleton key={i} className="h-44 w-full rounded-xl" />)}
+              </div>
             ) : patterns.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Brain className="h-10 w-10 mx-auto mb-4 opacity-50" />
                 <p className="text-sm mb-1">No patterns detected yet.</p>
-                <p className="text-xs">Complete more sessions to unlock AI-detected behavior insights.</p>
+                <p className="text-xs">Complete 3+ sessions to unlock AI-detected behavior insights.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {patterns.map((pattern, i) => (
-                  <div key={i} className="rounded-xl bg-card border border-border/50 p-5 hover:border-primary/30 transition-colors">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                {patterns.map((pattern: any, i: number) => (
+                  <div key={i} className="rounded-xl bg-card border border-border/50 p-5 hover:border-primary/30 transition-colors flex flex-col">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <Lightbulb className="h-5 w-5 text-primary" />
                       </div>
-                     <h3 className="text-sm font-semibold">{pattern.description}</h3>
+                      <div className="flex-1">
+                        {pattern.pattern_type && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium mb-1.5 inline-block">
+                            {patternTypeLabel[pattern.pattern_type] || pattern.pattern_type}
+                          </span>
+                        )}
+                        <h3 className="text-sm font-semibold leading-snug">{pattern.description}</h3>
+                      </div>
                     </div>
+
                     {pattern.suggested_fix && (
-                      <p className="text-xs text-muted-foreground mb-2"><span className="text-foreground/70 font-medium">Suggestion:</span> {pattern.suggested_fix}</p>
+                      <p className="text-xs text-muted-foreground mb-4 flex-1">
+                        <span className="text-foreground/70 font-medium">Fix: </span>
+                        {pattern.suggested_fix}
+                      </p>
                     )}
+
+                    <button
+                      onClick={() => handleBuildWorkflow(pattern)}
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-auto pt-3 border-t border-border/30"
+                    >
+                      Build a workflow for this <ArrowRight className="h-3 w-3" />
+                    </button>
                   </div>
                 ))}
               </div>
