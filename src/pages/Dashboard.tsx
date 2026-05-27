@@ -28,47 +28,14 @@ const Dashboard = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-
-    if (hash && hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      const email = localStorage.getItem('wayfinder_pending_email');
-
-      if (accessToken && email) {
-        window.history.replaceState(null, '', window.location.pathname);
-        fetch(`https://wayfinder-backend-au9t.onrender.com/users/email/${encodeURIComponent(email)}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.user) {
-              const previousUserId = localStorage.getItem('wayfinder_user_id');
-              if (previousUserId && previousUserId !== data.user.id) {
-                localStorage.removeItem(`wayfinder_sessions_${previousUserId}`);
-              }
-              localStorage.setItem('wayfinder_user_id', data.user.id);
-              localStorage.removeItem('wayfinder_pending_email');
-              if (data.user.onboarded) {
-                loadDashboard(data.user.id);
-              } else {
-                navigate('/onboarding');
-              }
-            } else {
-              localStorage.removeItem('wayfinder_pending_email');
-              navigate('/onboarding');
-            }
-          })
-          .catch(() => navigate('/'));
-        return;
-      }
-    }
-
+    // AuthHandler in App.tsx handles the magic link token — do NOT duplicate here.
+    // Dashboard just loads data for whoever is already logged in.
     const userId = getUserId();
     if (!userId) { navigate("/"); return; }
     setLocalSessions(getSavedSessions());
     loadDashboard(userId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep query in sync if navigated here with prefill state
   useEffect(() => {
     if (prefill) setQuery(prefill);
   }, [prefill]);
@@ -99,13 +66,8 @@ const Dashboard = () => {
     }
   };
 
-  // Sessions now come from the API already merged with workflow titles (backend fixed)
-  // API returns: { id, title, date, status, has_workflow }
-  // We still check localStorage for bookmarks and local-only sessions
   const mergedSessions = (() => {
     const localMap = new Map(localSessions.map((s) => [s.sessionId, s]));
-
-    // API sessions already have proper titles from the fixed backend
     const apiCards = sessions
       .filter((s) => s.title && s.title !== "Untitled")
       .map((s) => ({
@@ -115,10 +77,7 @@ const Dashboard = () => {
         status: s.status || "completed",
         bookmarked: localMap.get(s.id || s.session_id || "")?.bookmarked || false,
       }));
-
     const apiIds = new Set(apiCards.map((c) => c.id));
-
-    // Local-only sessions (created this device, not yet in API response)
     const localOnly = localSessions
       .filter((s) => !apiIds.has(s.sessionId) && s.title && s.title !== "Untitled")
       .map((s) => ({
@@ -128,14 +87,13 @@ const Dashboard = () => {
         status: s.status,
         bookmarked: s.bookmarked || false,
       }));
-
     return [...apiCards, ...localOnly];
   })();
 
   const displayName = (user?.full_name || user?.name || "").split(" ")[0] || "there";
   const fitnessScore = user?.ai_fitness_score ?? 0;
   const fitnessLevel = user?.ai_fitness_level ?? "Beginner";
-  const latestNudge = user?.nudges?.[0] as { id?: string; message?: string; text?: string; nudge_type?: string; action_prompt?: string } | undefined;
+  const latestNudge = user?.nudges?.[0] as { id?: string; message?: string; action_prompt?: string } | undefined;
 
   const openWorkflow = (id: string) => {
     const local = localSessions.find((s) => s.sessionId === id);
@@ -146,7 +104,6 @@ const Dashboard = () => {
     }
   };
 
-  // Try It — uses the nudge's action_prompt if available, else the nudge message
   const handleTryIt = (nudge: typeof latestNudge) => {
     if (!nudge) return;
     const action = nudge.action_prompt || nudge.message || "";
@@ -157,6 +114,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Sidebar — desktop only */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 p-4">
         <div className="flex items-center gap-2 mb-8 px-2">
           <Compass className="h-6 w-6 text-primary" />
@@ -171,8 +129,8 @@ const Dashboard = () => {
         </nav>
       </aside>
 
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 border-b border-border/50 flex items-center justify-between px-6">
+      <div className="flex-1 flex flex-col min-h-screen">
+        <header className="h-16 border-b border-border/50 flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-2 lg:hidden">
             <Compass className="h-5 w-5 text-primary" />
             <span className="font-bold">Wayfinder</span>
@@ -188,21 +146,22 @@ const Dashboard = () => {
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col lg:flex-row">
+        {/* pb-20 adds space above mobile bottom nav */}
+        <div className="flex-1 flex flex-col lg:flex-row pb-20 lg:pb-0">
           <div className="flex-1 p-6 lg:p-10">
             <div className="max-w-2xl mx-auto">
               <h1 className="text-2xl lg:text-3xl font-bold mb-2">
                 {loading ? <Skeleton className="h-8 w-64" /> : `Good morning, ${displayName}`}
               </h1>
-              <p className="text-muted-foreground mb-10">What do you want to get done today?</p>
+              <p className="text-muted-foreground mb-8">What do you want to get done today?</p>
 
-              <div className="relative mb-12">
+              <div className="relative mb-10">
                 <div className="rounded-2xl border border-primary/30 bg-card p-1 animate-pulse-glow">
                   <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Describe what you want to accomplish..."
-                    className="w-full bg-transparent rounded-xl p-4 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none min-h-[120px]"
+                    className="w-full bg-transparent rounded-xl p-4 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none min-h-[100px]"
                     onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) handleSubmit(); }}
                   />
                   <div className="flex justify-end p-2">
@@ -218,7 +177,7 @@ const Dashboard = () => {
                 {loading ? (
                   <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
                 ) : mergedSessions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-10 text-muted-foreground">
                     <Clock className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">No sessions yet. Start by describing what you want to accomplish!</p>
                   </div>
@@ -227,20 +186,18 @@ const Dashboard = () => {
                     {mergedSessions.map((session) => (
                       <button key={session.id} onClick={() => openWorkflow(session.id)} className="w-full flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors group text-left">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <CheckCircle2 className="h-4 w-4 text-primary" />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
-                              {session.bookmarked && <Bookmark className="h-3 w-3 text-primary fill-primary" />}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium group-hover:text-primary transition-colors flex items-center gap-1.5 truncate">
+                              {session.bookmarked && <Bookmark className="h-3 w-3 text-primary fill-primary shrink-0" />}
                               {session.title}
                             </p>
                             <p className="text-xs text-muted-foreground">{session.date}</p>
                           </div>
                         </div>
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary">
-                          completed
-                        </span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary shrink-0 ml-2">done</span>
                       </button>
                     ))}
                   </div>
@@ -249,12 +206,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-border/50 p-6 space-y-6">
+          {/* Sidebar panel — desktop only */}
+          <div className="hidden lg:block w-80 border-l border-border/50 p-6 space-y-6">
             {loading ? (
-              <>
-                <Skeleton className="h-40 w-full rounded-xl" />
-                <Skeleton className="h-32 w-full rounded-xl" />
-              </>
+              <><Skeleton className="h-40 w-full rounded-xl" /><Skeleton className="h-32 w-full rounded-xl" /></>
             ) : (
               <>
                 <div className="rounded-xl bg-card border border-border/50 p-5">
@@ -267,9 +222,9 @@ const Dashboard = () => {
                     <span className="text-xs text-muted-foreground mb-1">/100</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full mb-3">
-                    <div className="h-full gradient-bg rounded-full" style={{ width: `${fitnessScore}%` }} />
+                    <div className="h-full gradient-bg rounded-full transition-all" style={{ width: `${fitnessScore}%` }} />
                   </div>
-                  <p className="text-xs text-muted-foreground">Work on: {user?.ai_fitness_focus || "Getting started"}</p>
+                  <p className="text-xs text-muted-foreground">{user?.ai_fitness_focus || "Getting started"}</p>
                 </div>
 
                 <div className="rounded-xl bg-card border border-primary/20 p-5">
@@ -279,24 +234,38 @@ const Dashboard = () => {
                   </div>
                   {latestNudge ? (
                     <>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {latestNudge.message || (latestNudge as any).text}
-                      </p>
-                      <button
-                        onClick={() => handleTryIt(latestNudge)}
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                      >
+                      <p className="text-sm text-muted-foreground mb-3">{latestNudge.message}</p>
+                      <button onClick={() => handleTryIt(latestNudge)} className="text-xs text-primary hover:underline flex items-center gap-1">
                         Try it now <ArrowRight className="h-3 w-3" />
                       </button>
                     </>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No nudges yet. Complete a session to get personalized tips!</p>
+                    <p className="text-sm text-muted-foreground">Complete sessions to get personalized tips!</p>
                   )}
                 </div>
               </>
             )}
           </div>
         </div>
+
+        {/* Mobile fitness + nudge strip — shows above bottom nav on mobile */}
+        {!loading && (
+          <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 border-t border-border/30 bg-background/95 backdrop-blur-xl px-4 py-2 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />
+              <div className="w-20 h-1.5 bg-muted rounded-full">
+                <div className="h-full gradient-bg rounded-full" style={{ width: `${fitnessScore}%` }} />
+              </div>
+              <span className="text-xs text-primary font-medium">{fitnessScore}</span>
+              <span className="text-xs text-muted-foreground">{fitnessLevel}</span>
+            </div>
+            {latestNudge && (
+              <button onClick={() => handleTryIt(latestNudge)} className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0">
+                <Zap className="h-3 w-3" /> Nudge <ArrowRight className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
