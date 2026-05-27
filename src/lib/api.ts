@@ -24,12 +24,14 @@ export interface UserPayload {
 export interface Pattern {
   description: string;
   suggested_fix: string;
+  pattern_type?: string;
   [key: string]: unknown;
 }
 
 export interface Nudge {
   message: string;
   nudge_type: string;
+  action_prompt?: string;
   [key: string]: unknown;
 }
 
@@ -47,6 +49,7 @@ export interface UserProfile {
   ai_fitness_focus?: string;
   patterns?: Pattern[];
   nudges?: Nudge[];
+  onboarded?: boolean;
 }
 
 export interface ClarifyingQuestion {
@@ -67,24 +70,39 @@ export interface Session {
   query?: string;
   raw_input?: string;
   type?: string;
+  has_workflow?: boolean;
   intent?: { clarifying_questions?: string[] };
   clarifying_questions?: string[] | ClarifyingQuestion[];
 }
 
 export interface WorkflowTool {
   name: string;
-  why: string;
+  why?: string;
+  url?: string;
   link?: string;
   pricing?: string;
+  free_alternative?: string;
 }
 
 export interface WorkflowStep {
-  step: number;
-  tool: string;
-  what_to_do: string;
+  step?: number;
+  step_number?: number;
+  title?: string;
+  tool?: string;
+  what_to_do?: string;
   prompt_to_use?: string;
   expected_output?: string;
   time_estimate?: string;
+  fallback?: {
+    if_tool_unavailable?: string;
+    if_stuck?: string;
+    alternative_prompt?: string;
+  };
+  validation?: {
+    checkpoint_question?: string;
+    if_yes?: string;
+    if_no?: string;
+  };
 }
 
 export interface WorkflowResult {
@@ -98,7 +116,6 @@ export interface WorkflowResult {
     pro_tips?: string[];
     next_level?: string;
   };
-  // Also support flat structure
   title?: string;
   overview?: string;
   recommended_tools?: WorkflowTool[];
@@ -107,21 +124,18 @@ export interface WorkflowResult {
   next_level?: string;
 }
 
-// GET /users/email/:email
 export async function getUserByEmail(email: string): Promise<UserProfile> {
   const res = await request<{ user: UserProfile } | UserProfile>(`/users/email/${encodeURIComponent(email)}`);
   if ("user" in res && res.user) return res.user;
   return res as UserProfile;
 }
 
-// POST /users
-export async function createUser(data: UserPayload): Promise<UserProfile> {
+export async function createUser(data: Omit<UserPayload, "email"> & { email?: string }): Promise<UserProfile> {
   const res = await request<{ user: UserProfile } | UserProfile>("/users", { method: "POST", body: JSON.stringify(data) });
   if ("user" in res && res.user) return res.user;
   return res as UserProfile;
 }
 
-// GET /users/:id — response is { user: {...}, patterns: [], nudges: [] }
 export async function getUser(id: string): Promise<UserProfile> {
   const res = await request<{ user: UserProfile; patterns?: Pattern[]; nudges?: Nudge[] } | UserProfile>(`/users/${id}`);
   if ("user" in res && res.user) {
@@ -130,38 +144,24 @@ export async function getUser(id: string): Promise<UserProfile> {
   return res as UserProfile;
 }
 
-// POST /sessions/start
 export function startSession(data: { user_id: string; raw_input: string }): Promise<Session> {
   return request("/sessions/start", { method: "POST", body: JSON.stringify(data) });
 }
 
-// POST /sessions/build
 export function buildSession(data: { session_id: string; user_id: string; clarifying_answers: Record<string, string> }): Promise<WorkflowResult> {
   return request("/sessions/build", { method: "POST", body: JSON.stringify(data) });
 }
 
-// GET /sessions/:user_id
 export function getUserSessions(userId: string): Promise<Session[]> {
   return request(`/sessions/${userId}`);
 }
 
-// POST rating
 export function rateSession(data: { session_id: string; outcome_rating: number }): Promise<unknown> {
   return request("/sessions/rate", { method: "POST", body: JSON.stringify(data) });
 }
 
-// Magic link auth
-export interface MagicLinkResponse {
-  message: string;
-  is_new_user?: boolean;
-}
-
-export interface VerifyResponse {
-  user_id: string;
-  is_new_user: boolean;
-  onboarded: boolean;
-  profile?: UserProfile;
-}
+export interface MagicLinkResponse { message: string; is_new_user?: boolean; }
+export interface VerifyResponse { user_id: string; is_new_user: boolean; onboarded: boolean; profile?: UserProfile; }
 
 export function sendMagicLink(email: string): Promise<MagicLinkResponse> {
   return request("/auth/magic-link", { method: "POST", body: JSON.stringify({ email }) });
@@ -171,13 +171,23 @@ export function verifyMagicLink(token: string, email: string): Promise<VerifyRes
   return request("/auth/verify", { method: "POST", body: JSON.stringify({ token, email }) });
 }
 
-// Helper to get/set user id
+// ── User ID persistence ──
+// Store in BOTH localStorage (survives browser close) and sessionStorage (survives
+// clearing recents on Android PWA). Read from either — whichever has it wins.
+const USER_ID_KEY = "wayfinder_user_id";
+
 export function getUserId(): string | null {
-  return localStorage.getItem("wayfinder_user_id");
+  return localStorage.getItem(USER_ID_KEY) || sessionStorage.getItem(USER_ID_KEY);
 }
 
 export function setUserId(id: string): void {
-  localStorage.setItem("wayfinder_user_id", id);
+  localStorage.setItem(USER_ID_KEY, id);
+  sessionStorage.setItem(USER_ID_KEY, id);
+}
+
+export function clearUserId(): void {
+  localStorage.removeItem(USER_ID_KEY);
+  sessionStorage.removeItem(USER_ID_KEY);
 }
 
 export function getPendingEmail(): string | null {
