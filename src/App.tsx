@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthHandler from "./components/AuthHandler";
+import MobileNav from "./components/MobileNav";
 import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -36,6 +37,8 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {/* Mobile bottom navigation — shows on all authenticated pages */}
+          <MobileNav />
         </AuthHandler>
       </BrowserRouter>
     </TooltipProvider>
