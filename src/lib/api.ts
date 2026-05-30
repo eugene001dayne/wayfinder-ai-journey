@@ -23,14 +23,15 @@ export interface UserPayload {
 
 export interface Pattern {
   description: string;
-  suggested_fix: string;
+  suggested_fix?: string;
   pattern_type?: string;
   [key: string]: unknown;
 }
 
 export interface Nudge {
+  id?: string;
   message: string;
-  nudge_type: string;
+  nudge_type?: string;
   action_prompt?: string;
   [key: string]: unknown;
 }
@@ -65,12 +66,10 @@ export interface Session {
   date?: string;
   status?: string;
   rating?: number;
-  steps?: number;
-  tools?: string[];
-  query?: string;
+  has_workflow?: boolean;
+  workflow_id?: string;
   raw_input?: string;
   type?: string;
-  has_workflow?: boolean;
   intent?: { clarifying_questions?: string[] };
   clarifying_questions?: string[] | ClarifyingQuestion[];
 }
@@ -93,16 +92,8 @@ export interface WorkflowStep {
   prompt_to_use?: string;
   expected_output?: string;
   time_estimate?: string;
-  fallback?: {
-    if_tool_unavailable?: string;
-    if_stuck?: string;
-    alternative_prompt?: string;
-  };
-  validation?: {
-    checkpoint_question?: string;
-    if_yes?: string;
-    if_no?: string;
-  };
+  fallback?: { if_tool_unavailable?: string; if_stuck?: string; };
+  validation?: { checkpoint_question?: string; if_yes?: string; if_no?: string; };
 }
 
 export interface WorkflowResult {
@@ -115,6 +106,7 @@ export interface WorkflowResult {
     steps?: WorkflowStep[];
     pro_tips?: string[];
     next_level?: string;
+    prompts_generated?: Record<string, unknown>;
   };
   title?: string;
   overview?: string;
@@ -124,31 +116,40 @@ export interface WorkflowResult {
   next_level?: string;
 }
 
+// ── User API ──
 export async function getUserByEmail(email: string): Promise<UserProfile> {
   const res = await request<{ user: UserProfile } | UserProfile>(`/users/email/${encodeURIComponent(email)}`);
-  if ("user" in res && res.user) return res.user;
+  if (res && "user" in res && (res as any).user) return (res as any).user;
   return res as UserProfile;
 }
 
-export async function createUser(data: Omit<UserPayload, "email"> & { email?: string }): Promise<UserProfile> {
-  const res = await request<{ user: UserProfile } | UserProfile>("/users", { method: "POST", body: JSON.stringify(data) });
-  if ("user" in res && res.user) return res.user;
+export async function createUser(data: Partial<UserPayload> & { email?: string }): Promise<UserProfile> {
+  const res = await request<{ user: UserProfile } | UserProfile>("/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (res && "user" in res && (res as any).user) return (res as any).user;
   return res as UserProfile;
 }
 
 export async function getUser(id: string): Promise<UserProfile> {
   const res = await request<{ user: UserProfile; patterns?: Pattern[]; nudges?: Nudge[] } | UserProfile>(`/users/${id}`);
-  if ("user" in res && res.user) {
-    return { ...res.user, patterns: res.patterns || [], nudges: res.nudges || [] };
+  if (res && "user" in res && (res as any).user) {
+    return { ...(res as any).user, patterns: (res as any).patterns || [], nudges: (res as any).nudges || [] };
   }
   return res as UserProfile;
 }
 
+// ── Session API ──
 export function startSession(data: { user_id: string; raw_input: string }): Promise<Session> {
   return request("/sessions/start", { method: "POST", body: JSON.stringify(data) });
 }
 
-export function buildSession(data: { session_id: string; user_id: string; clarifying_answers: Record<string, string> }): Promise<WorkflowResult> {
+export function buildSession(data: {
+  session_id: string;
+  user_id: string;
+  clarifying_answers: Record<string, string>;
+}): Promise<WorkflowResult> {
   return request("/sessions/build", { method: "POST", body: JSON.stringify(data) });
 }
 
@@ -160,44 +161,50 @@ export function rateSession(data: { session_id: string; outcome_rating: number }
   return request("/sessions/rate", { method: "POST", body: JSON.stringify(data) });
 }
 
+// ── Auth API ──
 export interface MagicLinkResponse { message: string; is_new_user?: boolean; }
-export interface VerifyResponse { user_id: string; is_new_user: boolean; onboarded: boolean; profile?: UserProfile; }
 
 export function sendMagicLink(email: string): Promise<MagicLinkResponse> {
   return request("/auth/magic-link", { method: "POST", body: JSON.stringify({ email }) });
 }
 
-export function verifyMagicLink(token: string, email: string): Promise<VerifyResponse> {
-  return request("/auth/verify", { method: "POST", body: JSON.stringify({ token, email }) });
-}
-
-// ── User ID persistence ──
-// Store in BOTH localStorage (survives browser close) and sessionStorage (survives
-// clearing recents on Android PWA). Read from either — whichever has it wins.
+// ── Storage helpers ──
+// Dual storage: localStorage survives browser close, sessionStorage survives
+// clearing recent apps on Android. Reading either one keeps users logged in.
 const USER_ID_KEY = "wayfinder_user_id";
 
 export function getUserId(): string | null {
-  return localStorage.getItem(USER_ID_KEY) || sessionStorage.getItem(USER_ID_KEY);
+  try {
+    return localStorage.getItem(USER_ID_KEY) || sessionStorage.getItem(USER_ID_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function setUserId(id: string): void {
-  localStorage.setItem(USER_ID_KEY, id);
-  sessionStorage.setItem(USER_ID_KEY, id);
+  try {
+    localStorage.setItem(USER_ID_KEY, id);
+    sessionStorage.setItem(USER_ID_KEY, id);
+  } catch {
+    // storage blocked (private browsing) — fall back to memory
+  }
 }
 
 export function clearUserId(): void {
-  localStorage.removeItem(USER_ID_KEY);
-  sessionStorage.removeItem(USER_ID_KEY);
+  try {
+    localStorage.removeItem(USER_ID_KEY);
+    sessionStorage.removeItem(USER_ID_KEY);
+  } catch { /* ignore */ }
 }
 
 export function getPendingEmail(): string | null {
-  return localStorage.getItem("wayfinder_pending_email");
+  try { return localStorage.getItem("wayfinder_pending_email"); } catch { return null; }
 }
 
 export function setPendingEmail(email: string): void {
-  localStorage.setItem("wayfinder_pending_email", email);
+  try { localStorage.setItem("wayfinder_pending_email", email); } catch { /* ignore */ }
 }
 
 export function clearPendingEmail(): void {
-  localStorage.removeItem("wayfinder_pending_email");
+  try { localStorage.removeItem("wayfinder_pending_email"); } catch { /* ignore */ }
 }
