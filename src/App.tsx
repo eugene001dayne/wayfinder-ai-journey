@@ -37,7 +37,6 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          {/* Mobile bottom navigation — shows on all authenticated pages */}
           <MobileNav />
         </AuthHandler>
       </BrowserRouter>
