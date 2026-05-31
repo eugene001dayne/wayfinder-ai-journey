@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/>
+      <stop offset="50%" stop-color="#C4B5FD"/>
+      <stop offset="100%" stop-color="#DDD6FE"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#3730A3"/>
+    </linearGradient>
+    <!-- Subtle network line color -->
+    <style>
+      .net { stroke: #1E40AF; stroke-opacity: 0.18; fill: none; stroke-width: 1.5; }
+      .node { fill: none; stroke: #1E40AF; stroke-opacity: 0.25; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Network lines top-left -->
+  <line class="net" x1="0" y1="80" x2="140" y2="160"/>
+  <line class="net" x1="140" y1="160" x2="260" y2="100"/>
+  <line class="net" x1="260" y1="100" x2="320" y2="40"/>
+  <circle class="node" cx="140" cy="160" r="6"/>
+  <circle class="node" cx="260" cy="100" r="6"/>
+  <circle class="node" cx="40" cy="200" r="6"/>
+  <line class="net" x1="40" y1="200" x2="140" y2="160"/>
+
+  <!-- Network lines top-right -->
+  <line class="net" x1="1200" y1="60" x2="1060" y2="140"/>
+  <line class="net" x1="1060" y1="140" x2="960" y2="80"/>
+  <line class="net" x1="960" y1="80" x2="880" y2="30"/>
+  <circle class="node" cx="1060" cy="140" r="6"/>
+  <circle class="node" cx="960" cy="80" r="6"/>
+  <circle class="node" cx="1150" cy="220" r="5"/>
+  <line class="net" x1="1150" y1="220" x2="1060" y2="140"/>
+
+  <!-- Network lines bottom-left -->
+  <line class="net" x1="0" y1="500" x2="100" y2="440"/>
+  <line class="net" x1="100" y1="440" x2="200" y2="500"/>
+  <line class="net" x1="200" y1="500" x2="280" y2="580"/>
+  <circle class="node" cx="100" cy="440" r="6"/>
+  <circle class="node" cx="200" cy="500" r="5"/>
+
+  <!-- Network lines bottom-right -->
+  <line class="net" x1="1200" y1="520" x2="1080" y2="460"/>
+  <line class="net" x1="1080" y1="460" x2="1000" y2="520"/>
+  <line class="net" x1="1000" y1="520" x2="940" y2="600"/>
+  <circle class="node" cx="1080" cy="460" r="6"/>
+  <circle class="node" cx="1000" cy="520" r="5"/>
+
+  <!-- Center: Logo mark -->
+  <g transform="translate(530, 210)">
+    <!-- The path mark at display size -->
+    <circle cx="18" cy="56" r="5" fill="#1E3A8A" opacity="0.9"/>
+    <path d="M18 56 C18 38, 38 30, 54 17" stroke="#1E3A8A" stroke-width="5.5" stroke-linecap="round" fill="none" opacity="0.9"/>
+    <path d="M44 14 L56 16 L58 28" stroke="#1E3A8A" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+  </g>
+
+  <!-- Wayfinder wordmark -->
+  <text
+    x="600"
+    y="325"
+    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-size="88"
+    font-weight="800"
+    fill="#1E3A8A"
+    text-anchor="middle"
+    letter-spacing="-2"
+  >Wayfinder</text>
+
+  <!-- Tagline -->
+  <text
+    x="600"
+    y="388"
+    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-size="32"
+    font-weight="600"
+    fill="#1E40AF"
+    text-anchor="middle"
+    letter-spacing="0"
+  >Your Personal AI Navigator</text>
+
+  <!-- Sub tagline -->
+  <text
+    x="600"
+    y="432"
+    font-family="'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-size="24"
+    font-weight="400"
+    fill="#3730A3"
+    text-anchor="middle"
+    opacity="0.8"
+  >From idea to execution</text>
+</svg>
