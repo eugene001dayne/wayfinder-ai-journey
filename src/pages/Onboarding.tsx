@@ -79,6 +79,13 @@ const Onboarding = () => {
 
   const next = async () => {
     if (step < totalSteps) {
+      const stepNames: Record<number, string> = { 1: "name_and_role", 2: "industry" };
+      (window as any).pendo?.track("onboarding_step_completed", {
+        step_number: step,
+        step_name: stepNames[step] || `step_${step}`,
+        role_selected: step === 1 ? role : undefined,
+        industry_selected: step === 2 ? industry : undefined,
+      });
       setStep(step + 1);
     } else if (step === totalSteps) {
       setSubmitting(true);
@@ -92,6 +99,13 @@ const Onboarding = () => {
           goals: goal,
         });
         setUserId(user.id);
+        (window as any).pendo?.track("onboarding_completed", {
+          role,
+          industry,
+          tools_they_use: tools.join(", "),
+          has_goal: !!goal.trim(),
+          goal_length: goal.trim().length,
+        });
         setStep(4);
       } catch {
         toast({ title: "Error", description: "Could not complete onboarding. Please try again.", variant: "destructive" });

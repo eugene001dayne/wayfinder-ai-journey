@@ -45,20 +45,35 @@ const Nudges = () => {
     const key = String(nudge.id || nudge.message);
     setDismissed((prev) => new Set(prev).add(key));
 
+    let dismissPersisted = false;
     if (userId && nudge.id) {
       try {
         await fetch(
           `https://wayfinder-backend-au9t.onrender.com/users/${userId}/nudges/${nudge.id}/dismiss`,
           { method: 'PUT', headers: { 'Content-Type': 'application/json' } }
         );
+        dismissPersisted = true;
       } catch (err) {
         console.error('Failed to persist nudge dismiss:', err);
       }
     }
+    (window as any).pendo?.track("nudge_dismissed", {
+      nudge_id: nudge.id ? String(nudge.id) : "",
+      nudge_type: nudge.nudge_type || "",
+      nudge_message: (nudge.message || "").substring(0, 200),
+      dismiss_persisted: dismissPersisted,
+    });
   };
 
   const handleTryIt = (nudge: any) => {
     const action = nudge.action_prompt || nudge.message || "";
+    (window as any).pendo?.track("nudge_acted_on", {
+      nudge_id: nudge.id ? String(nudge.id) : "",
+      nudge_type: nudge.nudge_type || "",
+      nudge_message: (nudge.message || "").substring(0, 200),
+      action_prompt: (action || "").substring(0, 200),
+      source_page: "nudges",
+    });
     navigate("/dashboard", { state: { prefillQuery: action } });
   };
 

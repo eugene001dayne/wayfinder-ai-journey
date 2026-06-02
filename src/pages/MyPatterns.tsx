@@ -34,6 +34,12 @@ const MyPatterns = () => {
   // Navigate to dashboard with the pattern's suggested fix as the prefill query
   const handleBuildWorkflow = (pattern: any) => {
     const query = pattern.suggested_fix || pattern.description || "";
+    (window as any).pendo?.track("pattern_workflow_initiated", {
+      pattern_type: pattern.pattern_type || "",
+      pattern_description: (pattern.description || "").substring(0, 200),
+      suggested_fix: (pattern.suggested_fix || "").substring(0, 200),
+      prefill_query: query.substring(0, 200),
+    });
     navigate("/dashboard", { state: { prefillQuery: query } });
   };
 
