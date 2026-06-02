@@ -39,6 +39,23 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
       .then((user) => {
         if (user?.id) {
           setUserId(user.id);
+
+          pendo.identify({
+            visitor: {
+              id: user.id,
+              email: user.email,
+              full_name: user.full_name,
+              role: user.role,
+              industry: user.industry,
+              tools_they_use: user.tools_they_use,
+              goals: user.goals,
+              ai_fitness_score: user.ai_fitness_score,
+              ai_fitness_level: user.ai_fitness_level,
+              ai_fitness_focus: user.ai_fitness_focus,
+              onboarded: user.onboarded,
+            },
+          });
+
           const isOnboarded = !!(user.full_name && user.role);
           if (isOnboarded) {
             navigate("/dashboard", { replace: true });
