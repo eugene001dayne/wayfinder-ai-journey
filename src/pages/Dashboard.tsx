@@ -58,6 +58,12 @@ const Dashboard = () => {
       const res = await startSession({ user_id: userId, raw_input: query });
       const sessionId = res.session_id || res.id;
       const questions = res.clarifying_questions || res.intent?.clarifying_questions || [];
+      (window as any).pendo?.track("session_started", {
+        query_length: query.trim().length,
+        session_id: sessionId,
+        clarifying_questions_count: questions.length,
+        was_prefilled: !!prefill,
+      });
       navigate("/session", { state: { sessionId, questions, query } });
     } catch {
       navigate("/session", { state: { query } });

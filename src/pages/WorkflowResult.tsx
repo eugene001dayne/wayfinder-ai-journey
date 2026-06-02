@@ -177,13 +177,27 @@ const WorkflowResultPage = () => {
   const copyPrompt = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIdx(idx);
+    (window as any).pendo?.track("step_prompt_copied", {
+      session_id: sessionId,
+      step_index: idx,
+      prompt_length: text.length,
+      workflow_title: title,
+    });
     setTimeout(() => setCopiedIdx(null), 2000);
   };
 
   const submitRating = async (stars: number) => {
     setRating(stars);
     if (sessionId) {
-      try { await rateSession({ session_id: sessionId, outcome_rating: stars }); setRatingSubmitted(true); } catch {}
+      try {
+        await rateSession({ session_id: sessionId, outcome_rating: stars });
+        setRatingSubmitted(true);
+        (window as any).pendo?.track("workflow_rated", {
+          session_id: sessionId,
+          outcome_rating: stars,
+          workflow_title: title,
+        });
+      } catch {}
     }
   };
 
@@ -191,6 +205,11 @@ const WorkflowResultPage = () => {
     if (sessionId) {
       const newState = toggleBookmark(sessionId);
       setBookmarked(newState);
+      (window as any).pendo?.track("workflow_bookmarked", {
+        session_id: sessionId,
+        new_bookmark_state: newState,
+        workflow_title: title,
+      });
     }
   };
 
@@ -203,7 +222,14 @@ const WorkflowResultPage = () => {
       const contextMsg = `Follow-up on workflow "${title}": ${tweakInput}`;
       const res = await startSession({ user_id: userId, raw_input: contextMsg });
       const questions = res.clarifying_questions || res.intent?.clarifying_questions || [];
-      if (questions.length > 0) {
+      const resultedInNewSession = questions.length > 0;
+      (window as any).pendo?.track("workflow_tweak_submitted", {
+        session_id: sessionId,
+        tweak_input_length: tweakInput.trim().length,
+        original_workflow_title: title,
+        resulted_in_new_session: resultedInNewSession,
+      });
+      if (resultedInNewSession) {
         navigate("/session", { state: { sessionId: res.session_id || res.id, questions, query: contextMsg } });
       } else {
         setTweakNotes((prev) => [...prev, `Adjustment noted: ${tweakInput}`]);
@@ -217,6 +243,10 @@ const WorkflowResultPage = () => {
   };
 
   const handleRegenerate = () => {
+    (window as any).pendo?.track("workflow_regenerated", {
+      session_id: sessionId,
+      original_workflow_title: title,
+    });
     navigate("/dashboard", { state: { prefillQuery: title } });
   };
 

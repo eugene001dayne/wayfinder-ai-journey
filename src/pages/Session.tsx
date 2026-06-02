@@ -46,6 +46,16 @@ const Session = () => {
       const result = await buildSession({ session_id: sessionId, user_id: userId, clarifying_answers });
       // Save to localStorage with query for regeneration
       const wfTitle = result?.workflow?.title || result?.title || query;
+      const wfSteps = result?.workflow?.steps || result?.steps || [];
+      const wfTools = result?.workflow?.recommended_tools || result?.recommended_tools || [];
+      (window as any).pendo?.track("workflow_generated", {
+        session_id: sessionId,
+        questions_count: questions.length,
+        answers_provided_count: answers.filter((a) => a.trim()).length,
+        workflow_title: wfTitle,
+        workflow_steps_count: wfSteps.length,
+        workflow_tools_count: wfTools.length,
+      });
       saveSession({ sessionId, title: wfTitle, date: new Date().toLocaleDateString(), status: "Completed", query, workflow: result });
       navigate("/workflow", { state: { result, sessionId } });
     } catch {

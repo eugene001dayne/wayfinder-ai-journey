@@ -57,12 +57,22 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
           });
 
           const isOnboarded = !!(user.full_name && user.role);
+          (window as any).pendo?.track("magic_link_authenticated", {
+            is_new_user: false,
+            is_onboarded: isOnboarded,
+            auth_type: type || "magiclink",
+          });
           if (isOnboarded) {
             navigate("/dashboard", { replace: true });
           } else {
             navigate("/onboarding", { state: { email: pendingEmail, userId: user.id }, replace: true });
           }
         } else {
+          (window as any).pendo?.track("magic_link_authenticated", {
+            is_new_user: true,
+            is_onboarded: false,
+            auth_type: type || "magiclink",
+          });
           // No profile found — new user, go to onboarding
           navigate("/onboarding", { state: { email: pendingEmail }, replace: true });
         }

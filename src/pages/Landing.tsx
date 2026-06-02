@@ -27,6 +27,11 @@ const Landing = () => {
       await sendMagicLink(email.trim());
       setPendingEmail(email.trim());
       setSent(true);
+      (window as any).pendo?.track("magic_link_requested", {
+        email_domain: email.trim().split("@")[1] || "",
+        form_location: "landing_page",
+        is_returning_user: !!getUserId(),
+      });
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
